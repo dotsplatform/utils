@@ -1,0 +1,10 @@
+parameters:
+  level: 6
+  paths:
+    - src/Dots
+  checkMissingIterableValueType: false
+  checkGenericClassInNonGenericObjectType: false
+  ignoreErrors:
+    - '#Function config not found.#'
+    - '#Function trans not found.#'
+    - '#Unsafe usage of new static\(\).#'

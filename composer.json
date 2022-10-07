@@ -1,0 +1,28 @@
+{
+    "name": "dotsplatform/utils",
+    "description": "Development tools from Dots Platform",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Dots\\": "src/",
+            "Dots\\Tests\\": "src/tests"
+        }
+    },
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^9.34",
+        "illuminate/queue": "^9.34",
+        "illuminate/bus": "^9.34",
+        "laravel/vapor-core": "^2.23",
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.2",
+        "eduarguz/shift-php-cs": "^3.0"
+    },
+    "scripts": {
+        "init-pre-commit": [
+            "cp .git-hooks-pre-commit .git/hooks/pre-commit"
+        ]
+    }
+}
