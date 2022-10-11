@@ -1,3 +1,6 @@
 /vendor/
 .idea
 .DS_Store
+.phpunit.result.cache
+.php_cs.cache
+.php_cs-fixer.cache

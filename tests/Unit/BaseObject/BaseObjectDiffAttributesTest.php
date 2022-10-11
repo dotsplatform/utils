@@ -6,11 +6,11 @@
  * @author    Yehor Herasymchuk <yehor@dotsplatform.com>
  */
 
-namespace Dots\Tests\Dots\BaseObject;
+namespace Tests\Unit\BaseObject;
 
-use Dots\Tests\Dots\BaseObject\Objects\TestBaseObject;
-use Dots\Tests\Dots\BaseObject\Objects\TestBaseObjectWithArray;
 use Tests\TestCase;
+use Tests\Unit\BaseObject\Objects\TestBaseObject;
+use Tests\Unit\BaseObject\Objects\TestBaseObjectWithArray;
 
 class BaseObjectDiffAttributesTest extends TestCase
 {

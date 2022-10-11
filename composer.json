@@ -5,20 +5,18 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Dots\\": "src/",
-            "Dots\\Tests\\": "src/tests"
+            "Dots\\": "src/Dots",
+            "Tests\\": "tests/"
         }
     },
     "require": {
         "php": "^8.1",
-        "illuminate/support": "^9.34",
-        "illuminate/queue": "^9.34",
-        "illuminate/bus": "^9.34",
-        "laravel/vapor-core": "^2.23",
+        "illuminate/support": "^9.35|^10."
     },
     "require-dev": {
         "phpstan/phpstan": "^1.2",
-        "eduarguz/shift-php-cs": "^3.0"
+        "eduarguz/shift-php-cs": "^3.0",
+        "phpunit/phpunit": "^9.5"
     },
     "scripts": {
         "init-pre-commit": [

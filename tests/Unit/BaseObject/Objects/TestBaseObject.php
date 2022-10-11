@@ -6,7 +6,7 @@
  * @author    Yehor Herasymchuk <yehor@dotsplatform.com>
  */
 
-namespace Dots\Tests\Dots\BaseObject\Objects;
+namespace Tests\Unit\BaseObject\Objects;
 
 use Dots\Data\DTO;
 

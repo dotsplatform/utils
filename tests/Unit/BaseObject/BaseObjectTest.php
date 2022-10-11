@@ -6,10 +6,10 @@
  * @author    Yehor Herasymchuk <yehor@dotsplatform.com>
  */
 
-namespace Dots\Tests\Dots\BaseObject;
+namespace Tests\Unit\BaseObject;
 
 use Tests\TestCase;
-use Dots\Tests\Dots\BaseObject\Objects\TestBaseObject;
+use Tests\Unit\BaseObject\Objects\TestBaseObject;
 
 class BaseObjectTest extends TestCase
 {
