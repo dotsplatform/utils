@@ -43,7 +43,7 @@ class VersionChecker
             }
             $versionAPart = $versionAParts[$index];
 
-            if ($versionAPart == $versionBPart) {
+            if ($versionAPart === $versionBPart) {
                 continue;
             }
 
