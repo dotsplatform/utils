@@ -9,15 +9,22 @@
 namespace Dots\Data;
 
 use Illuminate\Contracts\Support\Arrayable;
+use ReflectionClass;
 
-abstract class BaseObject implements Arrayable
+abstract class BaseObject implements Arrayable, FromArrayable
 {
     private function __construct(
-        array $data
+        array $data,
     ) {
         $this->assertConstructDataIsValid($data);
         $properties = $this->getPropertiesValues();
+        $objProperties = $this->getObjectionableProperties();
+
         foreach ($properties as $property => $defaultValue) {
+            if ($this->isNeedToCreateFromArrayableObject($objProperties, $data, $property)) {
+                $this->$property = $objProperties[$property]::fromArray($data[$property]);
+                continue;
+            }
             $this->$property = $data[$property] ?? $defaultValue;
         }
     }
@@ -66,7 +73,7 @@ abstract class BaseObject implements Arrayable
 
     public function isEquals(?Arrayable $obj): bool
     {
-        if (! $obj) {
+        if (!$obj) {
             return false;
         }
 
@@ -75,7 +82,7 @@ abstract class BaseObject implements Arrayable
 
     public function diffAttributes(?Arrayable $obj): array
     {
-        if (! $obj) {
+        if (!$obj) {
             return $this->toArray();
         }
 
@@ -90,16 +97,16 @@ abstract class BaseObject implements Arrayable
         $difference = [];
         foreach ($array1 as $key => $value) {
             if (is_array($value)) {
-                if (! isset($array2[$key]) || ! is_array($array2[$key])) {
+                if (!isset($array2[$key]) || !is_array($array2[$key])) {
                     $difference[$key] = $value;
                 } else {
                     $new_diff = $this->arrayDiffRecursive($value, $array2[$key]);
-                    if (! empty($new_diff)) {
+                    if (!empty($new_diff)) {
                         $difference[$key] = $new_diff;
                     }
                 }
             } else {
-                if (! array_key_exists($key, $array2) || $array2[$key] !== $value) {
+                if (!array_key_exists($key, $array2) || $array2[$key] !== $value) {
                     if (is_float($value) && array_key_exists($key, $array2) && is_float($array2[$key])) {
                         if ($this->areFloatNumbersEqual($value, $array2[$key])) {
                             continue;
@@ -115,6 +122,47 @@ abstract class BaseObject implements Arrayable
 
     private function areFloatNumbersEqual(float $value1, float $value2): bool
     {
-        return (string) $value1 === (string) $value2;
+        return (string)$value1 === (string)$value2;
+    }
+
+    private function getObjectionableProperties(): array
+    {
+        $result = [];
+        $reflection = new ReflectionClass($this);
+        foreach ($reflection->getProperties() as $property) {
+            if ($property->getType()->isBuiltin()) {
+                continue;
+            }
+
+            if (!$this->isFromArrayable($property->getType()->getName())) {
+                continue;
+            }
+
+            $result[$property->getName()] = $property->getType()->getName();
+        }
+
+        return $result;
+    }
+
+    private function isFromArrayable(string $name): bool
+    {
+        $implementations = class_implements($name);
+        return (bool)($implementations[FromArrayable::class] ?? null);
+    }
+
+    private function isNeedToCreateFromArrayableObject(
+        array $objProperties,
+        array $data,
+        string $property,
+    ): bool {
+        if (!isset($data[$property])) {
+            return false;
+        }
+
+        if (is_object($data[$property])) {
+            return false;
+        }
+
+        return !empty($objProperties[$property]);
     }
 }
