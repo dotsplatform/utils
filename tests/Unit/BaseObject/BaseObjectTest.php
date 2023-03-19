@@ -47,7 +47,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectFilledValue(): void
     {
@@ -64,7 +64,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectIsNullByDefault(): void
     {
@@ -77,7 +77,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectIsNullIfPassed(): void
     {
@@ -91,7 +91,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object1234
+     * @group object
      */
     public function testExpectsIncludedObjectIsPassedToDTOAsObject(): void
     {
@@ -108,7 +108,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectAndCollectionFilled(): void
     {
@@ -133,7 +133,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedCollectionFilledPassedAsObject(): void
     {
@@ -155,7 +155,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectFilledAndCollectionIsNullByDefault(): void
     {
@@ -172,7 +172,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectFilledAndCollectionIsNullIfPassed(): void
     {
@@ -190,7 +190,7 @@ class BaseObjectTest extends TestCase
 
     /**
      * @group unit
-     * @group object123
+     * @group object
      */
     public function testExpectsIncludedObjectAndCollectionAndArrayFilled(): void
     {

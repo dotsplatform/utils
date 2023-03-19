@@ -10,6 +10,7 @@ namespace Dots\Data;
 
 use Illuminate\Contracts\Support\Arrayable;
 use ReflectionClass;
+use ReflectionNamedType;
 
 abstract class BaseObject implements Arrayable, FromArrayable
 {
@@ -130,15 +131,19 @@ abstract class BaseObject implements Arrayable, FromArrayable
         $result = [];
         $reflection = new ReflectionClass($this);
         foreach ($reflection->getProperties() as $property) {
-            if ($property->getType()->isBuiltin()) {
+            $propertyType = $property->getType();
+            if (!$propertyType instanceof ReflectionNamedType) {
+                continue;
+            }
+            if ($propertyType->isBuiltin()) {
                 continue;
             }
 
-            if (!$this->isFromArrayable($property->getType()->getName())) {
+            if (!$this->isFromArrayable($propertyType->getName())) {
                 continue;
             }
 
-            $result[$property->getName()] = $property->getType()->getName();
+            $result[$property->getName()] = $propertyType->getName();
         }
 
         return $result;
