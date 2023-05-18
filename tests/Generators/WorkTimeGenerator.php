@@ -16,17 +16,25 @@ class WorkTimeGenerator
     {
         $workTime = self::generateInactiveBeforeDayWorkTimeArray(7);
         return WorkTimeSchedule::fromArray(array_merge([
-            'schedule' => $workTime,
-            'timezone' => 'Europe/Kiev',
-            'alwaysOn' => true
+            'workTimeScheduleDays' => $workTime,
+            'timezone' => self::getBaseTimeZone(),
+            'anytime' => true,
         ], $data));
     }
 
     public static function generate(array $data = []): WorkTimeSchedule
     {
         return WorkTimeSchedule::fromArray(array_merge([
-            'schedule' => self::generateWorkTimeArray(),
-            'timezone' => 'Europe/Kiev'
+            'workTimeScheduleDays' => self::generateWorkTimeArray(),
+            'timezone' => self::getBaseTimeZone(),
+        ], $data));
+    }
+
+    public static function generateWithEmptyDays(array $data = []): WorkTimeSchedule
+    {
+        return WorkTimeSchedule::fromArray(array_merge([
+            'workTimeScheduleDays' => [],
+            'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
@@ -35,14 +43,16 @@ class WorkTimeGenerator
         $workTime = self::generateWorkTimeArray();
         $workTime[$numOfData] = $data;
         return WorkTimeSchedule::fromArray(array_merge([
-            'schedule' => $workTime,
+            'workTimeScheduleDays' => $workTime,
+            'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
     public static function generateWithInactiveDay(int $numberOfDay, array $dayData = []): WorkTimeSchedule
     {
         return WorkTimeSchedule::fromArray(array_merge([
-            'schedule' => self::getWorkTimeWithInactiveDay($numberOfDay, $dayData),
+            'workTimeScheduleDays' => self::getWorkTimeWithInactiveDay($numberOfDay, $dayData),
+            'timezone' => self::getBaseTimeZone(),
         ]));
     }
 
@@ -52,8 +62,12 @@ class WorkTimeGenerator
         $workTime[$numberOfDay] = array_merge([
             "id" => $numberOfDay,
             "status" => 0,
-            "start" => "08:00",
-            "end" => "08:00"
+            "startTime" => [
+                'time' => '08:00',
+            ],
+            "endTime" => [
+                'time' => '08:00',
+            ],
         ], $data);
         return $workTime;
     }
@@ -69,8 +83,12 @@ class WorkTimeGenerator
             $workTime[$i] = [
                 "id" => $i,
                 "status" => $status,
-                "start" => "08:00",
-                "end" => "23:00"
+                "startTime" => [
+                    'time' => '08:00',
+                ],
+                "endTime" => [
+                    'time' => '23:00',
+                ],
             ];
         }
         return $workTime;
@@ -83,8 +101,12 @@ class WorkTimeGenerator
             $workTime[$i] = [
                 "id" => $i,
                 "status" => 1,
-                "start" => "08:00",
-                "end" => "23:00"
+                "startTime" => [
+                    'time' => '08:00',
+                ],
+                "endTime" => [
+                    'time' => '23:00',
+                ],
             ];
         }
         return $workTime;
@@ -96,9 +118,18 @@ class WorkTimeGenerator
             [
                 "id" => 0,
                 "status" => 1,
-                "start" => "08:00",
-                "end" => "23:00"
+                "startTime" => [
+                    'time' => '08:00',
+                ],
+                "endTime" => [
+                    'time' => '23:00',
+                ],
             ]
         ];
+    }
+
+    private static function getBaseTimeZone(): string
+    {
+        return 'Europe/Kiev';
     }
 }

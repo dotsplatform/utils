@@ -15,9 +15,15 @@ use RuntimeException;
 
 class WorkTimeSchedule extends Entity
 {
-    protected bool $alwaysOn = false;
-    protected array $schedule = [];
-    protected ?string $timezone = null;
+    protected bool $anytime = false;
+    protected WorkTimeScheduleDays $workTimeScheduleDays;
+    protected string $timezone;
+
+    public static function fromArray(array $data): static
+    {
+        $data['workTimeScheduleDays'] = WorkTimeScheduleDays::fromArray($data['workTimeScheduleDays'] ?? []);
+        return parent::fromArray($data);
+    }
 
     public function isWorkingNow(): bool
     {
@@ -26,7 +32,7 @@ class WorkTimeSchedule extends Entity
 
     public function isWorkingAtTime(int $timestamp): bool
     {
-        if ($this->isAlwaysOn()) {
+        if ($this->isAnytime()) {
             return true;
         }
         if ($this->isActiveDay($timestamp)) {
@@ -39,7 +45,7 @@ class WorkTimeSchedule extends Entity
 
     public function isWorkingDay(int $timestamp): bool
     {
-        if ($this->isAlwaysOn()) {
+        if ($this->isAnytime()) {
             return true;
         }
         if ($this->isActiveDay($timestamp) && $this->getEndTime($timestamp) > $timestamp) {
@@ -48,39 +54,17 @@ class WorkTimeSchedule extends Entity
         return false;
     }
 
-    private function isActiveDay(int $timestamp): bool
+    public function getWorkTimeToday(): ?WorkTimeScheduleDay
     {
-        if ($this->isAlwaysOn()) {
-            return true;
-        }
-        if (! $this->isEmptyWorkTime()) {
-            $workTime = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-            if (empty($workTime['start']) || empty($workTime['end'])) {
-                return false;
-            }
-            return (bool)$workTime['status'];
-        }
-        return false;
+        return $this->getWorkTimeForWeekDay($this->getCurrentWeekDay());
     }
 
-    public function isEmptyWorkTime(): bool
-    {
-        return empty($this->getSchedule());
-    }
-
-    public function getWorkTimeToday(): ?array
-    {
-        $workTime = $this->getSchedule();
-
-        return $workTime[$this->getCurrentWeekDay()] ?? null;
-    }
-
-    public function getStartTimeToday(): int|bool
+    public function getStartTimeToday(): ?int
     {
         return $this->getStartTime(time());
     }
 
-    public function getEndTimeToday(): int|bool
+    public function getEndTimeToday(): ?int
     {
         return $this->getEndTime(time());
     }
@@ -93,78 +77,47 @@ class WorkTimeSchedule extends Entity
     /**
      * Calculates and returns nearest working date in Unix timestamp, for input timestamp.
      * If all days of the week are days off, will return null.
-     *
-     * @param int $timestamp
-     * @return int|null
      */
     public function getNearestStartTime(int $timestamp): ?int
     {
         if ($this->isWorkingAtTime($timestamp)) {
-            $workingSchedule = $this->getWorkTimeForWeekDay($this->getWeekDayByTimestamp($timestamp));
-            if (!is_array($workingSchedule)) {
+            $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
+            if (! $day) {
                 return null;
             }
-            $date = $this->createDateFromTimestamp($timestamp)->format('Y-m-d');
-            $dateTime = $date . $workingSchedule['start'];
-            try {
-                return $this->createDateFromFormat($dateTime)->getTimestamp();
-            } catch (Exception $e) {
-                return null;
-            }
+
+            return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getStartTime()->getTime());
         }
 
         $nextWorkingWeekDay = $this->getNextWorkingWeekDay($timestamp);
-
-        if (!is_int($nextWorkingWeekDay)) {
+        if (! $nextWorkingWeekDay) {
             return null;
         }
 
-        $workingScheduleForNextWorkingWeekDay = $this->getWorkTimeForWeekDay($nextWorkingWeekDay);
-        if (!is_array($workingScheduleForNextWorkingWeekDay)) {
-            return null;
-        }
-        $nextWorkingDate = $this->getNextWorkingDate($nextWorkingWeekDay, $timestamp);
-        $nextWorkingDateTime = $nextWorkingDate . $workingScheduleForNextWorkingWeekDay['start'];
+        $nextWorkingDayTimestamp = $this->getNextWorkingDayTimestamp($nextWorkingWeekDay->getId(), $timestamp);
 
-        try {
-            return $this->createDateFromFormat($nextWorkingDateTime)->getTimestamp();
-        } catch (Exception $e) {
-        }
-        return null;
+        return $this->generateTimestampForSpecifiedDayAndTime(
+            $nextWorkingDayTimestamp,
+            $nextWorkingWeekDay->getStartTime()->getTime(),
+        );
     }
 
-    /**
-     * Gets, calculates and returns first nearest working week day number (0-6) for input timestamp.
-     * Or returns false, if all days are day off.
-     *
-     */
-    private function getNextWorkingWeekDay(int $timestamp): int|bool
+    private function isActiveDay(int $timestamp): bool
     {
-        $currentWeekDay = $this->getWeekDay($timestamp);
-        $workTimeArray = $this->getSchedule();
-        $i = 0;
-        while ($i < count($workTimeArray)) {
-            if ($workTimeArray[$currentWeekDay]['status']) {
-                return $currentWeekDay;
-            }
-            $currentWeekDay++;
-            if ($currentWeekDay == count($workTimeArray)) {
-                $currentWeekDay = 0;
-            }
-            $i++;
+        if ($this->isAnytime()) {
+            return true;
         }
+        $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
 
-        return false;
+        return (bool)$day?->isStatusActive();
     }
 
-    /**
-     * Get date of the nearest working week day by its number (0-6) for input timestamp.
-     *
-     * @param $nextWorkingWeekDay
-     * @param $timestamp
-     * @return string
-     */
-    private function getNextWorkingDate(int $nextWorkingWeekDay, int $timestamp): string
+    private function getNextWorkingWeekDay(int $timestamp): ?WorkTimeScheduleDay
+    {
+        return $this->getWorkTimeScheduleDays()->findNextActiveDayInWeekScope($this->getWeekDay($timestamp));
+    }
+
+    private function getNextWorkingDayTimestamp(int $nextWorkingWeekDay, int $timestamp): int
     {
         $nextWorkingWeekDay++;
         $today = $this->createDateFromTimestamp($timestamp);
@@ -173,7 +126,7 @@ class WorkTimeSchedule extends Entity
         if ($nextWorkingWeekDay < $todayWeekDay) {
             $diffDays = 7 - $todayWeekDay + $nextWorkingWeekDay;
         }
-        return $today->addDays($diffDays)->format('Y-m-d');
+        return $today->addDays($diffDays)->startOfDay()->getTimestamp();
     }
 
     private function getCurrentWeekDay(): int
@@ -186,64 +139,38 @@ class WorkTimeSchedule extends Entity
         return $this->createDateFromTimestamp($time)->format('N') - 1;
     }
 
-    /**
-     * There is a bug, we expect that $workTime has all days from weekDay, and each day has corresponding array key to
-     * his id of day.
-     */
-    private function getWorkTimeForWeekDay(int $weekDay): array|bool
+    private function getStartTime(int $timestamp): ?int
     {
-        $workTime = $this->getSchedule();
-        if (! $workTime) {
-            return false;
+        $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
+        if (! $day) {
+            return null;
         }
-        foreach ($workTime as $key => $workDay) {
-            if ($workDay['status'] == 0) {
-                unset($workTime[$key]);
-            }
-        }
-        return ! empty($workTime[$weekDay]) ? $workTime[$weekDay] : false;
+        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getStartTime()->getTime());
     }
 
-    public function getWorkTimeWeekDayByTime(int $timestamp): array|bool
+    private function getEndTime(int $timestamp): ?int
     {
-        return $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
+        $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
+        if (! $day) {
+            return null;
+        }
+        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getEndTime()->getTime());
     }
 
-    private function getStartTime(int $timestamp): int|bool
+    private function getWorkTimeForWeekDay(int $weekDay): ?WorkTimeScheduleDay
     {
-        $workTime = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-        if (!is_array($workTime)) {
-            return false;
-        }
-        return $this->getTime($timestamp, $workTime['start']);
+        return $this->getWorkTimeScheduleDays()->findDayById($weekDay);
     }
 
-    private function getEndTime(int $timestamp): int|bool
+    private function generateTimestampForSpecifiedDayAndTime(int $timestamp, string $time): int
     {
-        $workTime = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-        if (!is_array($workTime)) {
-            return false;
-        }
-        return $this->getTime($timestamp, $workTime['end']);
-    }
-
-    private function getTime(int $timestamp, string $time): int
-    {
-        if (! $time) {
-            return $timestamp;
-        }
         $day = $this->createDateFromTimestamp($timestamp)->format('Y-m-d');
-        $fullDay = $day . $time;
+        $fullDay = $day . ' ' . $time;
         try {
             return $this->createDateFromFormat($fullDay, 'Y-m-d H:i')->getTimestamp();
-        } catch (Exception $e) {
+        } catch (Exception) {
             return $timestamp;
         }
-    }
-
-    private function getWeekDayByTimestamp(int $timestamp): int
-    {
-        return $this->createDateFromTimestamp($timestamp)->format('N') - 1;
     }
 
     private function createDateFromTimestamp(int $timestamp): Carbon
@@ -260,18 +187,18 @@ class WorkTimeSchedule extends Entity
         return $date;
     }
 
-    public function isAlwaysOn(): bool
+    public function isAnytime(): bool
     {
-        return $this->alwaysOn;
+        return $this->anytime;
     }
 
-    public function getSchedule(): array
-    {
-        return $this->schedule;
-    }
-
-    public function getTimezone(): ?string
+    public function getTimezone(): string
     {
         return $this->timezone;
+    }
+
+    public function getWorkTimeScheduleDays(): WorkTimeScheduleDays
+    {
+        return $this->workTimeScheduleDays;
     }
 }
