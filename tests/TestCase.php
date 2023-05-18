@@ -16,4 +16,11 @@ class TestCase extends BaseTestCase
     {
         return Str::uuid()->__toString();
     }
+
+    public function assertTimestampsAreEqualsInAccuracyToMinute(
+        int $firstTimestamp,
+        int $secondTimestamp,
+    ): void {
+        $this->assertTrue(abs($firstTimestamp - $secondTimestamp) < 60);
+    }
 }
