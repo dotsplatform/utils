@@ -1,27 +1,26 @@
 <?php
-
 /**
- * Description of WorkTimeSchedule.php
+ * Description of Slots.php
  * @copyright Copyright (c) DOTSPLATFORM, LLC
  * @author    Oleksandr Polosmak <o.polosmak@dotsplatform.com>
  */
 
-namespace Dots\WorkTimeSchedule;
+namespace Dots\TimeSlots;
 
-use Dots\Data\Entity;
+use Carbon\Carbon;
+use Dots\Data\DTO;
 use Exception;
-use Illuminate\Support\Carbon;
 use RuntimeException;
 
-class WorkTimeSchedule extends Entity
+class TimeSlots extends DTO
 {
     protected bool $anytime = false;
-    protected WorkTimeScheduleDays $workTimeScheduleDays;
+    protected Days $days;
     protected string $timezone;
 
     public static function fromArray(array $data): static
     {
-        $data['workTimeScheduleDays'] = WorkTimeScheduleDays::fromArray($data['workTimeScheduleDays'] ?? []);
+        $data['days'] = Days::fromArray($data['days'] ?? []);
         return parent::fromArray($data);
     }
 
@@ -36,7 +35,7 @@ class WorkTimeSchedule extends Entity
             return true;
         }
         if ($this->isActiveDay($timestamp)) {
-            if ($this->getStartTime($timestamp) <= $timestamp && $this->getEndTime($timestamp) >= $timestamp) {
+            if ($this->findFirstDayStartTime($timestamp) <= $timestamp && $this->findFirstDayEndTime($timestamp) >= $timestamp) {
                 return true;
             }
         }
@@ -48,25 +47,25 @@ class WorkTimeSchedule extends Entity
         if ($this->isAnytime()) {
             return true;
         }
-        if ($this->isActiveDay($timestamp) && $this->getEndTime($timestamp) > $timestamp) {
+        if ($this->isActiveDay($timestamp) && $this->findFirstDayEndTime($timestamp) > $timestamp) {
             return true;
         }
         return false;
     }
 
-    public function getWorkTimeToday(): ?WorkTimeScheduleDay
+    public function getWorkTimeToday(): ?Day
     {
         return $this->getWorkTimeForWeekDay($this->getCurrentWeekDay());
     }
 
     public function getStartTimeToday(): ?int
     {
-        return $this->getStartTime(time());
+        return $this->findFirstDayStartTime(time());
     }
 
     public function getEndTimeToday(): ?int
     {
-        return $this->getEndTime(time());
+        return $this->findFirstDayEndTime(time());
     }
 
     public function getNearestStartTimeForNow(): ?int
@@ -81,16 +80,23 @@ class WorkTimeSchedule extends Entity
     public function getNearestStartTime(int $timestamp): ?int
     {
         if ($this->isWorkingAtTime($timestamp)) {
-            $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-            if (! $day) {
+            $slot = $this->findFirstDaySlot($timestamp);
+            if (!$slot) {
                 return null;
             }
 
-            return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getStartTime()->getTime());
+            return $this->generateTimestampForSpecifiedDayAndTime(
+                $timestamp,
+                $slot->getStart(),
+            );
         }
 
-        $nextWorkingWeekDay = $this->getNextWorkingWeekDay($timestamp);
-        if (! $nextWorkingWeekDay) {
+        $nextWorkingWeekDay = $this->getDays()->getNextWorkingWeekDay($this->getWeekDay($timestamp));
+        if (!$nextWorkingWeekDay) {
+            return null;
+        }
+        $timeSlot = $nextWorkingWeekDay->getSlots()->first();
+        if (!$timeSlot) {
             return null;
         }
 
@@ -98,7 +104,7 @@ class WorkTimeSchedule extends Entity
 
         return $this->generateTimestampForSpecifiedDayAndTime(
             $nextWorkingDayTimestamp,
-            $nextWorkingWeekDay->getStartTime()->getTime(),
+            $timeSlot->getStart(),
         );
     }
 
@@ -109,12 +115,7 @@ class WorkTimeSchedule extends Entity
         }
         $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
 
-        return (bool)$day?->isStatusActive();
-    }
-
-    private function getNextWorkingWeekDay(int $timestamp): ?WorkTimeScheduleDay
-    {
-        return $this->getWorkTimeScheduleDays()->findNextActiveDayInWeekScope($this->getWeekDay($timestamp));
+        return (bool)$day?->isActive();
     }
 
     private function getNextWorkingDayTimestamp(int $nextWorkingWeekDay, int $timestamp): int
@@ -139,27 +140,27 @@ class WorkTimeSchedule extends Entity
         return $this->createDateFromTimestamp($time)->format('N') - 1;
     }
 
-    private function getStartTime(int $timestamp): ?int
+    private function findFirstDayStartTime(int $timestamp): ?int
     {
-        $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-        if (! $day) {
+        $slot = $this->findFirstDaySlot($timestamp);
+        if (!$slot) {
             return null;
         }
-        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getStartTime()->getTime());
+        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $slot->getStart());
     }
 
-    private function getEndTime(int $timestamp): ?int
+    private function findFirstDayEndTime(int $timestamp): ?int
     {
-        $day = $this->getWorkTimeForWeekDay($this->getWeekDay($timestamp));
-        if (! $day) {
+        $slot = $this->findFirstDaySlot($timestamp);
+        if (!$slot) {
             return null;
         }
-        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $day->getEndTime()->getTime());
+        return $this->generateTimestampForSpecifiedDayAndTime($timestamp, $slot->getEnd());
     }
 
-    private function getWorkTimeForWeekDay(int $weekDay): ?WorkTimeScheduleDay
+    private function getWorkTimeForWeekDay(int $weekDay): ?Day
     {
-        return $this->getWorkTimeScheduleDays()->findDayById($weekDay);
+        return $this->getDays()->findDay($weekDay);
     }
 
     private function generateTimestampForSpecifiedDayAndTime(int $timestamp, string $time): int
@@ -181,15 +182,31 @@ class WorkTimeSchedule extends Entity
     private function createDateFromFormat(string $date, string $format = 'Y-m-d H:i'): Carbon
     {
         $date = Carbon::createFromFormat($format, $date, $this->getTimezone());
-        if (! $date instanceof Carbon) {
+        if (!$date instanceof Carbon) {
             throw new RuntimeException("Unable resolve date format {$date}");
         }
         return $date;
     }
 
-    public function isAnytime(): bool
+    public function findFirstDaySlot(int $timestamp): ?Slot
     {
-        return $this->anytime;
+        $day = $this->findDayByTime($timestamp);
+        if (!$day) {
+            return null;
+        }
+        return $day->getSortedSlots()->first();
+    }
+
+    private function findDayByTime(int $timestamp): ?Day
+    {
+        return $this->getDays()->findDay(
+            Carbon::createFromTimestamp($timestamp, $this->getTimezone())->dayOfWeek - 1,
+        );
+    }
+
+    public function getDays(): Days
+    {
+        return $this->days;
     }
 
     public function getTimezone(): string
@@ -197,8 +214,8 @@ class WorkTimeSchedule extends Entity
         return $this->timezone;
     }
 
-    public function getWorkTimeScheduleDays(): WorkTimeScheduleDays
+    public function isAnytime(): bool
     {
-        return $this->workTimeScheduleDays;
+        return $this->anytime;
     }
 }

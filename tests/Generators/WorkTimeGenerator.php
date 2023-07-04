@@ -8,50 +8,50 @@
 namespace Tests\Generators;
 
 
-use Dots\WorkTimeSchedule\WorkTimeSchedule;
+use Dots\TimeSlots\TimeSlots;
 
 class WorkTimeGenerator
 {
-    public static function generateAlwaysOnWithInactiveDays(array $data = []): WorkTimeSchedule
+    public static function generateAlwaysOnWithInactiveDays(array $data = []): TimeSlots
     {
         $workTime = self::generateInactiveBeforeDayWorkTimeArray(7);
-        return WorkTimeSchedule::fromArray(array_merge([
-            'workTimeScheduleDays' => $workTime,
+        return TimeSlots::fromArray(array_merge([
+            'days' => $workTime,
             'timezone' => self::getBaseTimeZone(),
             'anytime' => true,
         ], $data));
     }
 
-    public static function generate(array $data = []): WorkTimeSchedule
+    public static function generate(array $data = []): TimeSlots
     {
-        return WorkTimeSchedule::fromArray(array_merge([
-            'workTimeScheduleDays' => self::generateWorkTimeArray(),
+        return TimeSlots::fromArray(array_merge([
+            'days' => self::generateWorkTimeArray(),
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithEmptyDays(array $data = []): WorkTimeSchedule
+    public static function generateWithEmptyDays(array $data = []): TimeSlots
     {
-        return WorkTimeSchedule::fromArray(array_merge([
-            'workTimeScheduleDays' => [],
+        return TimeSlots::fromArray(array_merge([
+            'days' => [],
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithCustomDayData(int $numOfData, array $data): WorkTimeSchedule
+    public static function generateWithCustomDayData(int $numOfData, array $data): TimeSlots
     {
         $workTime = self::generateWorkTimeArray();
         $workTime[$numOfData] = $data;
-        return WorkTimeSchedule::fromArray(array_merge([
-            'workTimeScheduleDays' => $workTime,
+        return TimeSlots::fromArray(array_merge([
+            'days' => $workTime,
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithInactiveDay(int $numberOfDay, array $dayData = []): WorkTimeSchedule
+    public static function generateWithInactiveDay(int $numberOfDay, array $dayData = []): TimeSlots
     {
-        return WorkTimeSchedule::fromArray(array_merge([
-            'workTimeScheduleDays' => self::getWorkTimeWithInactiveDay($numberOfDay, $dayData),
+        return TimeSlots::fromArray(array_merge([
+            'days' => self::getWorkTimeWithInactiveDay($numberOfDay, $dayData),
             'timezone' => self::getBaseTimeZone(),
         ]));
     }
@@ -60,13 +60,13 @@ class WorkTimeGenerator
     {
         $workTime = self::generateWorkTimeArray();
         $workTime[$numberOfDay] = array_merge([
-            "id" => $numberOfDay,
-            "status" => 0,
-            "startTime" => [
-                'time' => '08:00',
-            ],
-            "endTime" => [
-                'time' => '08:00',
+            'id' => $numberOfDay,
+            'status' => 0,
+            'slots' => [
+                [
+                    'start' => '08:00',
+                    'end' => '08:00',
+                ]
             ],
         ], $data);
         return $workTime;
@@ -81,13 +81,13 @@ class WorkTimeGenerator
                 $status = 1;
             }
             $workTime[$i] = [
-                "id" => $i,
-                "status" => $status,
-                "startTime" => [
-                    'time' => '08:00',
-                ],
-                "endTime" => [
-                    'time' => '23:00',
+                'id' => $i,
+                'status' => $status,
+                'slots' => [
+                    [
+                        'start' => '08:00',
+                        'end' => '23:00',
+                    ]
                 ],
             ];
         }
@@ -99,13 +99,13 @@ class WorkTimeGenerator
         $workTime = [];
         for ($i = 0; $i < 7; $i++) {
             $workTime[$i] = [
-                "id" => $i,
-                "status" => 1,
-                "startTime" => [
-                    'time' => '08:00',
-                ],
-                "endTime" => [
-                    'time' => '23:00',
+                'id' => $i,
+                'status' => 1,
+                'slots' => [
+                    [
+                        'start' => '08:00',
+                        'end' => '23:00',
+                    ]
                 ],
             ];
         }
@@ -116,13 +116,13 @@ class WorkTimeGenerator
     {
         return [
             [
-                "id" => 0,
-                "status" => 1,
-                "startTime" => [
-                    'time' => '08:00',
-                ],
-                "endTime" => [
-                    'time' => '23:00',
+                'id' => 0,
+                'status' => 1,
+                'slots' => [
+                    [
+                        'start' => '08:00',
+                        'end' => '23:00',
+                    ]
                 ],
             ]
         ];
