@@ -12,37 +12,31 @@ use Illuminate\Support\Collection;
 
 /** @method Slot[] all() */
 
-/** @extends  Collection<int, Slot> */
+/** @extends Collection<int, Slot> */
 class Slots extends Collection
 {
     public static function fromArray(array $data): static
     {
-        return new static(
-            array_map(
-                fn(array $item) => Slot::fromArray($item),
-                $data,
-            )
+        $slots = array_map(
+            fn (array $item) => Slot::fromArray($item),
+            $data,
         );
+        usort($slots, function (
+            Slot $slot1,
+            Slot $slot2,
+        ) {
+            return ($slot1->getStart() > $slot2->getStart()) ? 1 : -1;
+        });
+
+        return new static($slots);
     }
 
-    public function findSlot(int $timestamp, string $timezone): ?Slot
+    public function findNearestSlot(int $timestamp, string $timezone): ?Slot
     {
-        $slots = $this->sortTimes();
         $time = Carbon::createFromTimestamp($timestamp, $timezone)->format('H:i');
-        foreach ($slots as $slot) {
-            if ($slot->getStart() < $time && $slot->getEnd() > $time) {
-                return $slot;
-            }
-        }
 
-        return null;
+        return $this->filter(
+            fn (Slot $slot) => $slot->getEnd() > $time,
+        )->first();
     }
-
-    public function sortTimes(): static
-    {
-        return $this->sortBy([
-            fn(Slot $slot1, Slot $slot2) => $slot1->getStart() > $slot2->getStart(),
-        ]);
-    }
-
 }

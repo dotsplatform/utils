@@ -24,16 +24,6 @@ class Day extends DTO
         return parent::fromArray($data);
     }
 
-    public function findSlot(int $timestamp, string $timezone): ?Slot
-    {
-        return $this->getSlots()->findSlot($timestamp, $timezone);
-    }
-
-    public function getSortedSlots(): Slots
-    {
-        return $this->getSlots()->sortTimes();
-    }
-
     public function getId(): int
     {
         return $this->id;

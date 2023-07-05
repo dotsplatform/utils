@@ -1,7 +1,8 @@
 <?php
 
 use Carbon\Carbon;
-use Dots\TimeSlots\TimeSlots;
+use Dots\TimeSlots\Day;
+use Dots\TimeSlots\WorkTimeSchedule;
 use Tests\Generators\WorkTimeGenerator;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ class WorkTimeScheduleTest extends TestCase
         $data = WorkTimeGenerator::generateWorkTimeArray();
         $timezone = $this->getBaseTimeZone();
 
-        $schedule = TimeSlots::fromArray([
+        $schedule = WorkTimeSchedule::fromArray([
             'days' => $data,
             'anytime' => true,
             'timezone' => $timezone,
@@ -31,7 +32,7 @@ class WorkTimeScheduleTest extends TestCase
     public function testFromArrayExpectsDefaultValuesFilled(): void
     {
         $data = WorkTimeGenerator::generateWorkTimeArray();
-        $schedule = TimeSlots::fromArray([
+        $schedule = WorkTimeSchedule::fromArray([
             'days' => $data,
             'timezone' => $this->getBaseTimeZone(),
         ]);
@@ -228,13 +229,40 @@ class WorkTimeScheduleTest extends TestCase
         $expectedStartTime = $this->getCarbonNow()->addDay();
         $workTime = WorkTimeGenerator::generateInactiveBeforeDayWorkTimeArray($currentDay + 1);
         $workTime[$currentDay + 1]['slots'][0]['start'] = $expectedStartTime->format('H:i');
-        $schedule = TimeSlots::fromArray([
+        $schedule = WorkTimeSchedule::fromArray([
             'days' => $workTime,
             'timezone' => $this->getBaseTimeZone(),
         ]);
         $this->assertTimestampsAreEqualsInAccuracyToMinute(
             $expectedStartTime->timestamp,
             $schedule->getNearestStartTimeForNow(),
+        );
+    }
+
+    public function testGetNearestStartTimeExpectsSecondSlotToday(): void
+    {
+        $currentDay = $this->getCarbonNow()->format('N') - 1;
+        $time = $this->getCarbonNow()->setTimeFromTimeString('15:00');
+        $expectedStartTime = (clone $time)->addHours(2)->getTimestamp();
+        $dayData = [
+            'id' => $currentDay,
+            'status' => Day::STATUS_ACTIVE,
+            'slots' => [
+                [
+                    'start' => (clone $time)->subHours(3)->format('H:i'),
+                    'end' => (clone $time)->subHours(2)->format('H:i'),
+                ],
+                [
+                    'start' => (clone $time)->addHours(2)->format('H:i'),
+                    'end' => (clone $time)->addHours(3)->format('H:i'),
+                ],
+            ],
+
+        ];
+        $schedule = WorkTimeGenerator::generateWithCustomDayData($currentDay, $dayData);
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            $expectedStartTime,
+            $schedule->getNearestStartTime($time->getTimestamp()),
         );
     }
 
@@ -245,7 +273,7 @@ class WorkTimeScheduleTest extends TestCase
         $expectedStartTime = $this->getCarbonNow();
         $workTime = WorkTimeGenerator::generateInactiveBeforeDayWorkTimeArray($currentDay);
         $workTime[$currentDay]['slots'][0]['start'] = $expectedStartTime->format('H:i');
-        $schedule = TimeSlots::fromArray([
+        $schedule = WorkTimeSchedule::fromArray([
             'days' => $workTime,
             'timezone' => $this->getBaseTimeZone(),
         ]);

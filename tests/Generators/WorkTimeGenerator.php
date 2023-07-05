@@ -7,50 +7,49 @@
 
 namespace Tests\Generators;
 
-
-use Dots\TimeSlots\TimeSlots;
+use Dots\TimeSlots\WorkTimeSchedule;
 
 class WorkTimeGenerator
 {
-    public static function generateAlwaysOnWithInactiveDays(array $data = []): TimeSlots
+    public static function generateAlwaysOnWithInactiveDays(array $data = []): WorkTimeSchedule
     {
         $workTime = self::generateInactiveBeforeDayWorkTimeArray(7);
-        return TimeSlots::fromArray(array_merge([
+        return WorkTimeSchedule::fromArray(array_merge([
             'days' => $workTime,
             'timezone' => self::getBaseTimeZone(),
             'anytime' => true,
         ], $data));
     }
 
-    public static function generate(array $data = []): TimeSlots
+    public static function generate(array $data = []): WorkTimeSchedule
     {
-        return TimeSlots::fromArray(array_merge([
+        return WorkTimeSchedule::fromArray(array_merge([
             'days' => self::generateWorkTimeArray(),
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithEmptyDays(array $data = []): TimeSlots
+    public static function generateWithEmptyDays(array $data = []): WorkTimeSchedule
     {
-        return TimeSlots::fromArray(array_merge([
+        return WorkTimeSchedule::fromArray(array_merge([
             'days' => [],
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithCustomDayData(int $numOfData, array $data): TimeSlots
+    public static function generateWithCustomDayData(int $numOfData, array $data): WorkTimeSchedule
     {
         $workTime = self::generateWorkTimeArray();
         $workTime[$numOfData] = $data;
-        return TimeSlots::fromArray(array_merge([
+        return WorkTimeSchedule::fromArray(array_merge([
             'days' => $workTime,
             'timezone' => self::getBaseTimeZone(),
         ], $data));
     }
 
-    public static function generateWithInactiveDay(int $numberOfDay, array $dayData = []): TimeSlots
+    public static function generateWithInactiveDay(int $numberOfDay, array $dayData = []): WorkTimeSchedule
     {
-        return TimeSlots::fromArray(array_merge([
+        return WorkTimeSchedule::fromArray(array_merge([
             'days' => self::getWorkTimeWithInactiveDay($numberOfDay, $dayData),
             'timezone' => self::getBaseTimeZone(),
         ]));

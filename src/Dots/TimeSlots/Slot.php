@@ -8,6 +8,7 @@
 namespace Dots\TimeSlots;
 
 use Dots\Data\DTO;
+use Dots\TimeSlots\Exceptions\InvalidSlotTimeReceived;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -21,8 +22,7 @@ class Slot extends DTO
         $startResult = preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $data['start'] ?? null);
         $endResult = preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $data['end'] ?? null);
         if (!$startResult || !$endResult) {
-            Log::error('Invalid time received', $data);
-            throw new RuntimeException('Invalid time received');
+            throw new InvalidSlotTimeReceived('Invalid time received');
         }
 
         parent::assertConstructDataIsValid($data);
