@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "38f4056a1b28079dbdd6cbbd58322e6e",
+    "content-hash": "d64e05ae2a558e031dee0bab94665dd2",
     "packages": [
         {
             "name": "brick/math",
@@ -1728,6 +1728,46 @@
                 }
             ],
             "time": "2023-06-27T20:22:39+00:00"
+        },
+        {
+            "name": "larapack/dd",
+            "version": "1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/larapack/dd.git",
+                "reference": "561b5111a13d0094b59b5c81b1572489485fb948"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/larapack/dd/zipball/561b5111a13d0094b59b5c81b1572489485fb948",
+                "reference": "561b5111a13d0094b59b5c81b1572489485fb948",
+                "shasum": ""
+            },
+            "require": {
+                "symfony/var-dumper": "*"
+            },
+            "type": "package",
+            "autoload": {
+                "files": [
+                    "src/helper.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mark Topper",
+                    "email": "hi@webman.io"
+                }
+            ],
+            "description": "`dd` is a helper method in Laravel. This package will add the `dd` to your application.",
+            "support": {
+                "issues": "https://github.com/larapack/dd/issues",
+                "source": "https://github.com/larapack/dd/tree/master"
+            },
+            "time": "2016-12-15T09:34:34+00:00"
         },
         {
             "name": "myclabs/deep-copy",
@@ -4620,6 +4660,88 @@
                 }
             ],
             "time": "2023-03-21T21:06:29+00:00"
+        },
+        {
+            "name": "symfony/var-dumper",
+            "version": "v6.3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/var-dumper.git",
+                "reference": "c81268d6960ddb47af17391a27d222bd58cf0515"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/c81268d6960ddb47af17391a27d222bd58cf0515",
+                "reference": "c81268d6960ddb47af17391a27d222bd58cf0515",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1",
+                "symfony/polyfill-mbstring": "~1.0"
+            },
+            "conflict": {
+                "symfony/console": "<5.4"
+            },
+            "require-dev": {
+                "ext-iconv": "*",
+                "symfony/console": "^5.4|^6.0",
+                "symfony/process": "^5.4|^6.0",
+                "symfony/uid": "^5.4|^6.0",
+                "twig/twig": "^2.13|^3.0.4"
+            },
+            "bin": [
+                "Resources/bin/var-dump-server"
+            ],
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "Resources/functions/dump.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Component\\VarDumper\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides mechanisms for walking through any arbitrary PHP variable",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "debug",
+                "dump"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/var-dumper/tree/v6.3.1"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2023-06-21T12:08:28+00:00"
         },
         {
             "name": "theseer/tokenizer",

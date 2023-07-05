@@ -301,6 +301,55 @@ class WorkTimeScheduleTest extends TestCase
         $this->assertTrue($schedule->isWorkingDay(time() + 3600));
     }
 
+    public function testGenerateTranslatedSlotsByDaysExpectsFirstDaySlotIsNearestButNotFirst(): void
+    {
+        $time = $this->getCarbonNow();
+        $schedule = WorkTimeGenerator::generateScheduleForDayWithTwoSlotsNotActiveForTime($time->getTimestamp());
+
+        $slots = $schedule->generateTranslatedSlotsByDays($time->getTimestamp());
+
+        $expectedFirstStartTime = $schedule->getDays()->findActiveDay(abs($time->dayOfWeekIso - 1))
+            ->getSlots()
+            ->findNearestSlot($time->getTimestamp(), $this->getBaseTimeZone())
+            ->getStart();
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            (clone $time)->startOfDay()->getTimestamp(),
+            $slots[0]['date'],
+        );
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            (clone $time)->setTimeFromTimeString($expectedFirstStartTime)->getTimestamp(),
+            $slots[0]['times'][0]['start'],
+        );
+    }
+
+    public function testGenerateTranslatedSlotsByDaysExpectsEmptyIfDaysInaction(): void
+    {
+        $schedule = WorkTimeGenerator::generateAlwaysOnWithInactiveDays();
+
+        $slots = $schedule->generateTranslatedSlotsByDays(time());
+        $this->assertEmpty($slots);
+    }
+
+    public function testGenerateTranslatedSlotsByDaysExpectsFirstSlotIsFirstSlotOfDay(): void
+    {
+        $time = $this->getCarbonNow()->addDay()->setTimeFromTimeString('04:00');
+        $schedule = WorkTimeGenerator::generate();
+
+        $slots = $schedule->generateTranslatedSlotsByDays($time->getTimestamp());
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            (clone $time)->startOfDay()->getTimestamp(),
+            $slots[0]['date'],
+        );
+        $expectedFirstStartTime = $schedule->getDays()->findDay(abs($time->dayOfWeekIso - 1))
+            ->getSlots()
+            ->first()
+            ->getStart();
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            (clone $time)->setTimeFromTimeString($expectedFirstStartTime)->getTimestamp(),
+            $slots[0]['times'][0]['start'],
+        );
+    }
+
     private function getCarbonNow(): Carbon
     {
         return Carbon::now($this->getBaseTimeZone());

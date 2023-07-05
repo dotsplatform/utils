@@ -7,6 +7,7 @@
 
 namespace Dots\TimeSlots;
 
+use Carbon\Carbon;
 use Dots\Data\DTO;
 
 class Day extends DTO
@@ -22,6 +23,16 @@ class Day extends DTO
     {
         $data['slots'] = Slots::fromArray($data['slots'] ?? []);
         return parent::fromArray($data);
+    }
+
+    public function getNearestSlots(int $timestamp, string $timezone): Slots
+    {
+        $time = Carbon::createFromTimestamp($timestamp, $timezone);
+        if ($time->dayOfWeekIso - 1 !== $this->getId()) {
+            return $this->getSlots();
+        }
+
+        return $this->getSlots()->getNearestSlots($timestamp, $timezone);
     }
 
     public function getId(): int

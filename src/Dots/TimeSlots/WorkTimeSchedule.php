@@ -101,6 +101,58 @@ class WorkTimeSchedule extends DTO
             ->getTimestamp();
     }
 
+    public function generateTranslatedSlotsByDays(int $startTime, int $daysCount = 14): array
+    {
+        $slots = [];
+        $day = $this->createDateFromTimestamp($startTime);
+        while ($daysCount) {
+            $weekDay = $this->getDays()->findActiveDay(abs($day->dayOfWeekIso - 1));
+            if (!$weekDay) {
+                $day->addDay();
+                $daysCount--;
+                continue;
+            }
+            $daySlots = $weekDay->getNearestSlots($day->getTimestamp(), $this->timezone);
+            if ($daySlots->isEmpty()) {
+                $day->addDay();
+                $daysCount--;
+                continue;
+            }
+
+            $slots[] = [
+                'date' => (clone $day)->startOfDay()->getTimestamp(),
+                'times' => $this->translateSlotsTimestamps($daySlots, $day),
+            ];
+
+            $day->addDay();
+            $daysCount--;
+        }
+
+        return $slots;
+    }
+
+    private function translateSlotsTimestamps(
+        Slots $slots,
+        Carbon $day,
+    ): array {
+        $result = [];
+        foreach ($slots as $slot) {
+            $result[] = $this->translateSlotTimestamps($slot, $day);
+        }
+
+        return $result;
+    }
+
+    private function translateSlotTimestamps(
+        Slot $slot,
+        Carbon $day,
+    ): array {
+        return [
+            'start' => (clone $day)->setTime($slot->getStartHours(), $slot->getStartMinutes())->getTimestamp(),
+            'end' => (clone $day)->setTime($slot->getEndHours(), $slot->getEndMinutes())->getTimestamp(),
+        ];
+    }
+
     private function isActiveDay(int $timestamp): bool
     {
         if ($this->isAnytime()) {

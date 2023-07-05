@@ -7,6 +7,8 @@
 
 namespace Tests\Generators;
 
+use Carbon\Carbon;
+use Dots\TimeSlots\Day;
 use Dots\TimeSlots\WorkTimeSchedule;
 
 class WorkTimeGenerator
@@ -69,6 +71,28 @@ class WorkTimeGenerator
             ],
         ], $data);
         return $workTime;
+    }
+
+    public static function generateScheduleForDayWithTwoSlotsNotActiveForTime(int $timestamp): WorkTimeSchedule
+    {
+        $time = Carbon::createFromTimestamp($timestamp, self::getBaseTimeZone());
+        $currentDay = abs($time->dayOfWeekIso - 1);
+        $dayData = [
+            'id' => $currentDay,
+            'status' => Day::STATUS_ACTIVE,
+            'slots' => [
+                [
+                    'start' => (clone $time)->subHours(3)->format('H:i'),
+                    'end' => (clone $time)->subHours(2)->format('H:i'),
+                ],
+                [
+                    'start' => (clone $time)->addHours(2)->format('H:i'),
+                    'end' => (clone $time)->addHours(3)->format('H:i'),
+                ],
+            ],
+        ];
+
+        return self::generateWithCustomDayData($currentDay, $dayData);
     }
 
     public static function generateInactiveBeforeDayWorkTimeArray(int $day): array

@@ -17,7 +17,8 @@
     "require-dev": {
         "phpstan/phpstan": "^1.2",
         "eduarguz/shift-php-cs": "^3.0",
-        "phpunit/phpunit": "^10."
+        "phpunit/phpunit": "^10.",
+        "larapack/dd": "^1.1"
     },
     "scripts": {
         "init-pre-commit": [
