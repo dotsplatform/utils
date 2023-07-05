@@ -1,8 +1,8 @@
 <?php
 
 use Carbon\Carbon;
-use Dots\TimeSlots\Day;
-use Dots\TimeSlots\WorkTimeSchedule;
+use Dots\WorkTimeSchedule\Day;
+use Dots\WorkTimeSchedule\WorkTimeSchedule;
 use Tests\Generators\WorkTimeGenerator;
 use Tests\TestCase;
 

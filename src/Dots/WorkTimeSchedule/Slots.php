@@ -5,7 +5,7 @@
  * @author    Oleksandr Polosmak <o.polosmak@dotsplatform.com>
  */
 
-namespace Dots\TimeSlots;
+namespace Dots\WorkTimeSchedule;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;

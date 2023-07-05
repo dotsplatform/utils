@@ -5,7 +5,7 @@
  * @author    Oleksandr Polosmak <o.polosmak@dotsplatform.com>
  */
 
-namespace Dots\TimeSlots;
+namespace Dots\WorkTimeSchedule;
 
 use Dots\Data\DTO;
 use Dots\TimeSlots\Exceptions\InvalidSlotTimeReceived;
