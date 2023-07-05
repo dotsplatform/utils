@@ -33,10 +33,14 @@ class Slots extends Collection
 
     public function findNearestSlot(int $timestamp, string $timezone): ?Slot
     {
-        $time = Carbon::createFromTimestamp($timestamp, $timezone)->format('H:i');
+        return $this->getNearestSlots($timestamp, $timezone)->first();
+    }
 
+    public function getNearestSlots(int $timestamp, string $timezone): static
+    {
+        $time = Carbon::createFromTimestamp($timestamp, $timezone)->format('H:i');
         return $this->filter(
             fn (Slot $slot) => $slot->getEnd() > $time,
-        )->first();
+        );
     }
 }
