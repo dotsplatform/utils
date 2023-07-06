@@ -82,13 +82,13 @@ class WorkTimeSchedule extends DTO
         $nearestSlot = null;
         $day = Carbon::createFromTimestamp($timestamp, $this->timezone);
         for ($diffDays = 0; $diffDays < self::DAYS_IN_WEEK; $diffDays++) {
-            $nearestSlot = $this->getNearestDaySlots($day, $timestamp)->first();
+            $nearestSlot = $this->getDays()->getNearestDaySlots($day, $timestamp, $this->timezone)->first();
             if ($nearestSlot) {
                 break;
             }
             $day->addDay();
         }
-        
+
         if (!$nearestSlot) {
             return null;
         }
@@ -99,13 +99,12 @@ class WorkTimeSchedule extends DTO
             ->getTimestamp();
     }
 
-
-    public function generateTranslatedSlotsByDays(int $startTime, int $daysCount = 14): array
+    public function getTimestampsSlotsByDays(int $startTime, int $daysCount = 14): array
     {
         $slots = [];
         $day = $this->createDateFromTimestamp($startTime);
         while ($daysCount) {
-            $daySlots = $this->getDaySlotsTimestampts($day, $sartTime);
+            $daySlots = $this->getDaySlotsTimestamps($day, $startTime);
             if ($daySlots) {
                 $slots[] = $daySlots;
             }
@@ -116,53 +115,17 @@ class WorkTimeSchedule extends DTO
 
         return $slots;
     }
-    
-    private function getDaySlotsTimestampts(Carbon $day, int $startTime): array
+
+    private function getDaySlotsTimestamps(Carbon $day, int $startTime): array
     {
-        $daySlots = $this->getNearestDaySlots($day, $startTime);
+        $daySlots = $this->getDays()->getNearestDaySlots($day, $startTime, $this->timezone);
         if ($daySlots->isEmpty()) {
             return [];
         }
 
         return [
             'date' => (clone $day)->startOfDay()->getTimestamp(),
-            'times' => $this->translateSlotsTimestamps($daySlots, $day),
-        ];
-    }
-
-    private function getNearestDaySlots(Carbon $day, int $startTime): Slots
-    {
-        $weekDay = $this->findActiveDay($day);
-        if (!$weekDay) {
-            return Slots::empty();
-        }
-        return $weekDay->getNearestSlots($startTime, $this->timezone);
-    }
-
-    private function findActiveDay(Carbon $day): ?Day
-    {
-         return $this->getDays()->findActiveDay($day->dayOfWeekIso - 1);
-    }
-    
-    private function translateSlotsTimestamps(
-        Slots $slots,
-        Carbon $day,
-    ): array {
-        $result = [];
-        foreach ($slots as $slot) {
-            $result[] = $this->translateSlotTimestamps($slot, $day);
-        }
-
-        return $result;
-    }
-
-    private function translateSlotTimestamps(
-        Slot $slot,
-        Carbon $day,
-    ): array {
-        return [
-            'start' => (clone $day)->setTime($slot->getStartHours(), $slot->getStartMinutes())->getTimestamp(),
-            'end' => (clone $day)->setTime($slot->getEndHours(), $slot->getEndMinutes())->getTimestamp(),
+            'times' => $daySlots->getDaySlotsTimestamps($day),
         ];
     }
 
@@ -188,7 +151,7 @@ class WorkTimeSchedule extends DTO
 
     private function findFirstDaySlotStartTime(int $timestamp): ?int
     {
-        $day = $this->findDayByTime($timestamp);
+        $day = $this->getDays()->findDayByTime($timestamp, $this->timezone);
         $time = $day?->getSlots()->first()?->getStart();
         if (!$time) {
             return null;
@@ -198,7 +161,7 @@ class WorkTimeSchedule extends DTO
 
     private function findLastDaySlotEndTime(int $timestamp): ?int
     {
-        $day = $this->findDayByTime($timestamp);
+        $day = $this->getDays()->findDayByTime($timestamp, $this->timezone);
         $time = $day?->getSlots()->last()?->getEnd();
         if (!$time) {
             return null;
@@ -221,13 +184,6 @@ class WorkTimeSchedule extends DTO
     private function createDateFromTimestamp(int $timestamp): Carbon
     {
         return Carbon::createFromTimestamp($timestamp, $this->getTimezone());
-    }
-
-    private function findDayByTime(int $timestamp): ?Day
-    {
-        return $this->getDays()->findDay(
-            Carbon::createFromTimestamp($timestamp, $this->getTimezone())->dayOfWeekIso - 1,
-        );
     }
 
     public function getDays(): Days

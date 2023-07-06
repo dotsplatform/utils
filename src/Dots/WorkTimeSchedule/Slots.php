@@ -43,4 +43,16 @@ class Slots extends Collection
             fn (Slot $slot) => ($slot->getEnd() > $time) && ($slot->getStart() > $time),
         );
     }
+
+    public function getDaySlotsTimestamps(Carbon $day): array
+    {
+        $slotsTimestamps = $this->map(
+            fn (Slot $slot) => [
+                'start' => (clone $day)->setTimeFromTimeString($slot->getStart())->getTimestamp(),
+                'end' => (clone $day)->setTimeFromTimeString($slot->getEnd())->getTimestamp(),
+            ],
+        )->toArray();
+
+        return array_values($slotsTimestamps);
+    }
 }

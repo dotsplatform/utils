@@ -284,9 +284,9 @@ class WorkTimeScheduleTest extends TestCase
         $time = $this->getCarbonNow();
         $schedule = WorkTimeGenerator::generateScheduleForDayWithTwoSlotsNotActiveForTime($time->getTimestamp());
 
-        $slots = $schedule->generateTranslatedSlotsByDays($time->getTimestamp());
+        $slots = $schedule->getTimestampsSlotsByDays($time->getTimestamp());
 
-        $expectedFirstStartTime = $schedule->getDays()->findActiveDay(abs($time->dayOfWeekIso - 1))
+        $expectedFirstStartTime = $schedule->getDays()->findActiveDay($time->dayOfWeekIso - 1)
             ->getSlots()
             ->findNearestSlot($time->getTimestamp(), $this->getBaseTimeZone())
             ->getStart();
@@ -304,7 +304,7 @@ class WorkTimeScheduleTest extends TestCase
     {
         $schedule = WorkTimeGenerator::generateAlwaysOnWithInactiveDays();
 
-        $slots = $schedule->generateTranslatedSlotsByDays(time());
+        $slots = $schedule->getTimestampsSlotsByDays(time());
         $this->assertEmpty($slots);
     }
 
@@ -313,12 +313,12 @@ class WorkTimeScheduleTest extends TestCase
         $time = $this->getCarbonNow()->addDay()->setTimeFromTimeString('04:00');
         $schedule = WorkTimeGenerator::generate();
 
-        $slots = $schedule->generateTranslatedSlotsByDays($time->getTimestamp());
+        $slots = $schedule->getTimestampsSlotsByDays($time->getTimestamp());
         $this->assertTimestampsAreEqualsInAccuracyToMinute(
             (clone $time)->startOfDay()->getTimestamp(),
             $slots[0]['date'],
         );
-        $expectedFirstStartTime = $schedule->getDays()->findDay(abs($time->dayOfWeekIso - 1))
+        $expectedFirstStartTime = $schedule->getDays()->findDay($time->dayOfWeekIso - 1)
             ->getSlots()
             ->first()
             ->getStart();
