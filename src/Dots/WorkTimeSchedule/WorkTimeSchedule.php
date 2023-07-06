@@ -80,17 +80,15 @@ class WorkTimeSchedule extends DTO
     public function getNearestStartTime(int $timestamp): ?int
     {
         $nearestSlot = null;
-        $time = Carbon::createFromTimestamp($timestamp, $this->timezone);
+        $day = Carbon::createFromTimestamp($timestamp, $this->timezone);
         for ($diffDays = 0; $diffDays < self::DAYS_IN_WEEK; $diffDays++) {
-            $day = $this->getDays()->findActiveDay(abs($time->dayOfWeekIso - 1));
-            if ($day) {
-                $nearestSlot = $day->getNearestSlots($timestamp, $this->timezone)->first();
-                if ($nearestSlot) {
-                    break;
-                }
+            $nearestSlot = $this->getNearestDaySlots($day, $timestamp)->first();
+            if ($nearestSlot) {
+                break;
             }
-            $time->addDay();
+            $day->addDay();
         }
+        
         if (!$nearestSlot) {
             return null;
         }
@@ -101,28 +99,16 @@ class WorkTimeSchedule extends DTO
             ->getTimestamp();
     }
 
+
     public function generateTranslatedSlotsByDays(int $startTime, int $daysCount = 14): array
     {
         $slots = [];
         $day = $this->createDateFromTimestamp($startTime);
         while ($daysCount) {
-            $weekDay = $this->getDays()->findActiveDay(abs($day->dayOfWeekIso - 1));
-            if (!$weekDay) {
-                $day->addDay();
-                $daysCount--;
-                continue;
+            $daySlots = $this->getDaySlotsTimestampts($day, $sartTime);
+            if ($daySlots) {
+                $slots[] = $daySlots;
             }
-            $daySlots = $weekDay->getNearestSlots($startTime, $this->timezone);
-            if ($daySlots->isEmpty()) {
-                $day->addDay();
-                $daysCount--;
-                continue;
-            }
-
-            $slots[] = [
-                'date' => (clone $day)->startOfDay()->getTimestamp(),
-                'times' => $this->translateSlotsTimestamps($daySlots, $day),
-            ];
 
             $day->addDay();
             $daysCount--;
@@ -130,7 +116,34 @@ class WorkTimeSchedule extends DTO
 
         return $slots;
     }
+    
+    private function getDaySlotsTimestampts(Carbon $day, int $startTime): array
+    {
+        $daySlots = $this->getNearestDaySlots($day, $startTime);
+        if ($daySlots->isEmpty()) {
+            return [];
+        }
 
+        return [
+            'date' => (clone $day)->startOfDay()->getTimestamp(),
+            'times' => $this->translateSlotsTimestamps($daySlots, $day),
+        ];
+    }
+
+    private function getNearestDaySlots(Carbon $day, int $startTime): Slots
+    {
+        $weekDay = $this->findActiveDay($day);
+        if (!$weekDay) {
+            return Slots::empty();
+        }
+        return $weekDay->getNearestSlots($startTime, $this->timezone);
+    }
+
+    private function findActiveDay(Carbon $day): ?Day
+    {
+         return $this->getDays()->findActiveDay($day->dayOfWeekIso - 1);
+    }
+    
     private function translateSlotsTimestamps(
         Slots $slots,
         Carbon $day,
