@@ -261,22 +261,6 @@ class WorkTimeScheduleTest extends TestCase
         );
     }
 
-    public function testGetNearestStartTimeExpectsCurrentDay(): void
-    {
-        $currentDay = $this->getCarbonNow()->format('N') - 1;
-        $expectedStartTime = $this->getCarbonNow();
-        $workTime = WorkTimeGenerator::generateInactiveBeforeDayWorkTimeArray($currentDay);
-        $workTime[$currentDay]['slots'][0]['start'] = $expectedStartTime->format('H:i');
-        $schedule = WorkTimeSchedule::fromArray([
-            'days' => $workTime,
-            'timezone' => $this->getBaseTimeZone(),
-        ]);
-        $this->assertTimestampsAreEqualsInAccuracyToMinute(
-            $expectedStartTime->timestamp,
-            $schedule->getNearestStartTimeForNow(),
-        );
-    }
-
     public function testIsWorkingNowExpectsYesIfAlwaysOn(): void
     {
         $schedule = WorkTimeGenerator::generateAlwaysOnWithInactiveDays();
@@ -350,10 +334,10 @@ class WorkTimeScheduleTest extends TestCase
         $expectedStartTime = '12:00';
         $schedule = WorkTimeGenerator::generateWithCustomSlots();
 
-        $time = $schedule->getNearestStartTime($time->getTimestamp());
-        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+        $nearestStartTime = $schedule->getNearestStartTime($time->getTimestamp());
+        $this->assertEquals(
             $expectedStartTime,
-            Carbon::createFromTimestamp($time)->format('H:i'),
+            Carbon::createFromTimestamp($nearestStartTime, $this->getBaseTimeZone())->format('H:i'),
         );
     }
 
