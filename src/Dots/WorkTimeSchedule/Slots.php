@@ -40,7 +40,7 @@ class Slots extends Collection
     {
         $time = Carbon::createFromTimestamp($timestamp, $timezone)->format('H:i');
         return $this->filter(
-            fn (Slot $slot) => $slot->getEnd() > $time,
+            fn (Slot $slot) => ($slot->getEnd() > $time) && ($slot->getStart() > $time),
         );
     }
 }

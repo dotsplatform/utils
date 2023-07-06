@@ -84,7 +84,7 @@ class WorkTimeSchedule extends DTO
         for ($diffDays = 0; $diffDays < self::DAYS_IN_WEEK; $diffDays++) {
             $day = $this->getDays()->findActiveDay(abs($time->dayOfWeekIso - 1));
             if ($day) {
-                $nearestSlot = $day->getSlots()->findNearestSlot($timestamp, $this->timezone);
+                $nearestSlot = $day->getNearestSlots($timestamp, $this->timezone)->first();
                 if ($nearestSlot) {
                     break;
                 }
@@ -112,7 +112,7 @@ class WorkTimeSchedule extends DTO
                 $daysCount--;
                 continue;
             }
-            $daySlots = $weekDay->getNearestSlots($day->getTimestamp(), $this->timezone);
+            $daySlots = $weekDay->getNearestSlots($startTime, $this->timezone);
             if ($daySlots->isEmpty()) {
                 $day->addDay();
                 $daysCount--;

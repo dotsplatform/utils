@@ -172,9 +172,6 @@ class WorkTimeScheduleTest extends TestCase
         $this->assertNull($schedule->getStartTimeToday());
     }
 
-    /**
-     * @group testGetStartTimeTodayExpectsTime
-     */
     public function testGetStartTimeTodayExpectsTime(): void
     {
         $day = $this->getCarbonNow()->format('N') - 1;
@@ -215,14 +212,12 @@ class WorkTimeScheduleTest extends TestCase
         $this->assertTimestampsAreEqualsInAccuracyToMinute($end->timestamp, $schedule->getEndTimeToday());
     }
 
-    /** @group testGetNearestStartTimeExpectsNullIfEmpty */
     public function testGetNearestStartTimeExpectsNullIfEmpty(): void
     {
         $schedule = WorkTimeGenerator::generateWithEmptyDays();
         $this->assertNull($schedule->getNearestStartTime(time() + 3600));
     }
 
-    /** @group testGetNearestStartTimeExpectsTime */
     public function testGetNearestStartTimeExpectsTime(): void
     {
         $currentDay = $this->getCarbonNow()->format('N') - 1;
@@ -266,7 +261,6 @@ class WorkTimeScheduleTest extends TestCase
         );
     }
 
-    /** @group testGetNearestStartTimeExpectsCurrentDay */
     public function testGetNearestStartTimeExpectsCurrentDay(): void
     {
         $currentDay = $this->getCarbonNow()->format('N') - 1;
@@ -347,6 +341,19 @@ class WorkTimeScheduleTest extends TestCase
         $this->assertTimestampsAreEqualsInAccuracyToMinute(
             (clone $time)->setTimeFromTimeString($expectedFirstStartTime)->getTimestamp(),
             $slots[0]['times'][0]['start'],
+        );
+    }
+
+    public function testFindNearestSlotIfTimeIsGreatThatStartOfSlotExpectsNextSlot(): void
+    {
+        $time = $this->getCarbonNow()->setTimeFromTimeString('10:30');
+        $expectedStartTime = '12:00';
+        $schedule = WorkTimeGenerator::generateWithCustomSlots();
+
+        $time = $schedule->getNearestStartTime($time->getTimestamp());
+        $this->assertTimestampsAreEqualsInAccuracyToMinute(
+            $expectedStartTime,
+            Carbon::createFromTimestamp($time)->format('H:i'),
         );
     }
 

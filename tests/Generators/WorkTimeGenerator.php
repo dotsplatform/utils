@@ -13,6 +13,11 @@ use Dots\WorkTimeSchedule\WorkTimeSchedule;
 
 class WorkTimeGenerator
 {
+    public const BASE_SLOT_START = '08:00';
+    public const BASE_SLOT_END = '23:00';
+    public const BASE_SLOT_INTERVAL = 2;
+    public const BASE_DAY_STATUS = Day::STATUS_ACTIVE;
+
     public static function generateAlwaysOnWithInactiveDays(array $data = []): WorkTimeSchedule
     {
         $workTime = self::generateInactiveBeforeDayWorkTimeArray(7);
@@ -135,20 +140,50 @@ class WorkTimeGenerator
         return $workTime;
     }
 
-    public static function generateWorkWithOneDay(): array
+    public static function generateWithCustomSlots(array $data = []): WorkTimeSchedule
     {
-        return [
-            [
-                'id' => 0,
-                'status' => 1,
-                'slots' => [
-                    [
-                        'start' => '08:00',
-                        'end' => '23:00',
-                    ]
-                ],
-            ]
-        ];
+        $days = [];
+        for ($i = 0; $i < 7; $i++) {
+            $days[] = self::generateDay(
+                $i,
+                $data[$i]['start'] ?? self::BASE_SLOT_START,
+                $data[$i]['end'] ?? self::BASE_SLOT_END,
+                $data[$i]['hoursInterval'] ?? self::BASE_SLOT_INTERVAL,
+                $data[$i]['status'] ?? self::BASE_DAY_STATUS,
+            )->toArray();
+        }
+
+        return WorkTimeSchedule::fromArray([
+            'days' => $days,
+            'timezone' => self::getBaseTimezone(),
+        ]);
+    }
+
+    public static function generateDay(
+        int $id,
+        string $start = self::BASE_SLOT_START,
+        string $end = self::BASE_SLOT_END,
+        float $hoursInterval = self::BASE_SLOT_INTERVAL,
+        int $status = self::BASE_DAY_STATUS,
+    ): Day {
+        $startTime = Carbon::createFromFormat('H:i', $start, self::getBaseTimeZone());
+        $endTime = Carbon::createFromFormat('H:i', $end, self::getBaseTimeZone());
+        $countOfSlots = (int)(($endTime->hour - $startTime->hour) / $hoursInterval);
+        $slots = [];
+
+        for ($i = 0; $i < $countOfSlots; $i++) {
+            $slots[] = [
+                'start' => $startTime->format('H:i'),
+                'end' => (clone $startTime)->addMinutes($hoursInterval * 60)->format('H:i'),
+            ];
+
+            $startTime = $startTime->addMinutes($hoursInterval * 60);
+        }
+        return Day::fromArray([
+            'id' => $id,
+            'status' => $status,
+            'slots' => $slots,
+        ]);
     }
 
     private static function getBaseTimeZone(): string
