@@ -27,12 +27,17 @@ class Day extends DTO
 
     public function getNearestSlots(int $timestamp, string $timezone): Slots
     {
-        $time = Carbon::createFromTimestamp($timestamp, $timezone);
-        if ($time->dayOfWeekIso - 1 !== $this->getId()) {
-            return $this->getSlots();
+        if ($this->isSameDay($timestamp, $timezone)) {
+            return $this->getSlots()->getNearestSlots($timestamp, $timezone);
         }
 
-        return $this->getSlots()->getNearestSlots($timestamp, $timezone);
+        return $this->getSlots();
+    }
+
+    public function isSameDay(int $timestamp, string $timezone): bool
+    {
+        $time = Carbon::createFromTimestamp($timestamp, $timezone);
+        return $time->dayOfWeekIso - 1 === $this->getId();
     }
 
     public function getId(): int
