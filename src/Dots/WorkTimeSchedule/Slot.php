@@ -7,10 +7,9 @@
 
 namespace Dots\WorkTimeSchedule;
 
+use Carbon\Carbon;
 use Dots\Data\DTO;
-use Dots\TimeSlots\Exceptions\InvalidSlotTimeReceived;
-use Illuminate\Support\Facades\Log;
-use RuntimeException;
+use Dots\WorkTimeSchedule\Exceptions\InvalidSlotTimeReceived;
 
 class Slot extends DTO
 {
@@ -26,6 +25,20 @@ class Slot extends DTO
         }
 
         parent::assertConstructDataIsValid($data);
+    }
+
+    public function getDayStartTimeTimestamp(Carbon $day): int
+    {
+        return $day->startOfDay()
+            ->setTimeFromTimeString($this->getStart())
+            ->getTimestamp();
+    }
+
+    public function getDayEndTimeTimestamp(Carbon $day): int
+    {
+        return $day->startOfDay()
+            ->setTimeFromTimeString($this->getEnd())
+            ->getTimestamp();
     }
 
     public function getStart(): string

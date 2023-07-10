@@ -10,9 +10,12 @@ namespace Dots\WorkTimeSchedule;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-/** @method Slot[] all() */
-
-/** @extends Collection<int, Slot> */
+/**
+ * @extends Collection<int, Slot>
+ * @method Slot|null first(callable $callback = null, $default = null)
+ * @method Slot|null last(callable $callback = null, $default = null)
+ * @method Slot[] all()
+ */
 class Slots extends Collection
 {
     public static function fromArray(array $data): static

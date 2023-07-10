@@ -5,7 +5,7 @@
  * @author    Oleksandr Polosmak <o.polosmak@dotsplatform.com>
  */
 
-namespace Dots\TimeSlots\Exceptions;
+namespace Dots\WorkTimeSchedule\Exceptions;
 
 use Exception;
 
