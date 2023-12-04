@@ -17,11 +17,22 @@ class Position extends DTO
 
     public static function fromString(string $coordinates): static
     {
-        [$latitude, $longitude] = explode(',', $coordinates);
+        $coordinates = explode(',', $coordinates);
+        $latitude = $coordinates[0] ?? '';
+        $longitude = $coordinates[1] ?? '';
+        $latitude = trim($latitude);
+        $longitude = trim($longitude);
+        if (!is_numeric($latitude)) {
+            $latitude = null;
+        }
+
+        if (!is_numeric($longitude)) {
+            $longitude = null;
+        }
 
         return static::fromArray([
-            'latitude' => trim($latitude) ? (float)$latitude : null,
-            'longitude' => trim($longitude) ? (float)$longitude : null,
+            'latitude' => $latitude ? (float)$latitude : null,
+            'longitude' => $longitude ? (float)$longitude : null,
         ]);
     }
 
