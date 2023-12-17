@@ -8,6 +8,7 @@
 
 namespace Dots\Data;
 
+use BackedEnum;
 use Illuminate\Contracts\Support\Arrayable;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -20,10 +21,16 @@ abstract class BaseObject implements Arrayable, FromArrayable
         $this->assertConstructDataIsValid($data);
         $properties = $this->getPropertiesValues();
         $objProperties = $this->getObjectionableProperties();
+        $fromArrayableProperties = $objProperties['fromArray'];
+        $enumProperties = $objProperties['enums'];
 
         foreach ($properties as $property => $defaultValue) {
-            if ($this->isNeedToCreateFromArrayableObject($objProperties, $data, $property)) {
-                $this->$property = $objProperties[$property]::fromArray($data[$property]);
+            if ($this->isNeedToCreateObject($fromArrayableProperties, $data, $property)) {
+                $this->$property = $fromArrayableProperties[$property]::fromArray($data[$property]);
+                continue;
+            }
+            if ($this->isNeedToCreateObject($enumProperties, $data, $property)) {
+                $this->$property = $enumProperties[$property]::from($data[$property]);
                 continue;
             }
             $this->$property = $data[$property] ?? $defaultValue;
@@ -64,6 +71,8 @@ abstract class BaseObject implements Arrayable, FromArrayable
         foreach ($properties as $property) {
             if ($this->$property instanceof Arrayable) {
                 $data[$property] = $this->$property->toArray();
+            } else if ($this->$property instanceof BackedEnum) {
+                $data[$property] = $this->$property->value;
             } else {
                 $data[$property] = $this->$property;
             }
@@ -128,7 +137,10 @@ abstract class BaseObject implements Arrayable, FromArrayable
 
     private function getObjectionableProperties(): array
     {
-        $result = [];
+        $result = [
+            'fromArray' => [],
+            'enums' => [],
+        ];
         $reflection = new ReflectionClass($this);
         foreach ($reflection->getProperties() as $property) {
             $propertyType = $property->getType();
@@ -138,12 +150,13 @@ abstract class BaseObject implements Arrayable, FromArrayable
             if ($propertyType->isBuiltin()) {
                 continue;
             }
-
-            if (!$this->isFromArrayable($propertyType->getName())) {
+            if ($this->isFromArrayable($propertyType->getName())) {
+                $result['fromArray'][$property->getName()] = $propertyType->getName();
                 continue;
             }
-
-            $result[$property->getName()] = $propertyType->getName();
+            if (enum_exists($propertyType->getName())) {
+                $result['enums'][$property->getName()] = $propertyType->getName();
+            }
         }
 
         return $result;
@@ -155,19 +168,18 @@ abstract class BaseObject implements Arrayable, FromArrayable
         return (bool)($implementations[FromArrayable::class] ?? null);
     }
 
-    private function isNeedToCreateFromArrayableObject(
+    private function isNeedToCreateObject(
         array $objProperties,
         array $data,
         string $property,
     ): bool {
+        if (empty($objProperties[$property])) {
+            return false;
+        }
         if (!isset($data[$property])) {
             return false;
         }
-
-        if (is_object($data[$property])) {
-            return false;
-        }
-
-        return !empty($objProperties[$property]);
+        return !is_object($data[$property]);
     }
+
 }
