@@ -8,16 +8,31 @@
 
 namespace Dots\Data;
 
+use BackedEnum;
 use Illuminate\Contracts\Support\Arrayable;
+use ReflectionClass;
+use ReflectionNamedType;
 
-abstract class BaseObject implements Arrayable
+abstract class BaseObject implements Arrayable, FromArrayable
 {
     private function __construct(
-        array $data
+        array $data,
     ) {
         $this->assertConstructDataIsValid($data);
         $properties = $this->getPropertiesValues();
+        $objProperties = $this->getObjectionableProperties();
+        $fromArrayableProperties = $objProperties['fromArray'];
+        $enumProperties = $objProperties['enums'];
+
         foreach ($properties as $property => $defaultValue) {
+            if ($this->isNeedToCreateObject($fromArrayableProperties, $data, $property)) {
+                $this->$property = $fromArrayableProperties[$property]::fromArray($data[$property]);
+                continue;
+            }
+            if ($this->isNeedToCreateObject($enumProperties, $data, $property)) {
+                $this->$property = $enumProperties[$property]::from($data[$property]);
+                continue;
+            }
             $this->$property = $data[$property] ?? $defaultValue;
         }
     }
@@ -56,6 +71,8 @@ abstract class BaseObject implements Arrayable
         foreach ($properties as $property) {
             if ($this->$property instanceof Arrayable) {
                 $data[$property] = $this->$property->toArray();
+            } else if ($this->$property instanceof BackedEnum) {
+                $data[$property] = $this->$property->value;
             } else {
                 $data[$property] = $this->$property;
             }
@@ -66,7 +83,7 @@ abstract class BaseObject implements Arrayable
 
     public function isEquals(?Arrayable $obj): bool
     {
-        if (! $obj) {
+        if (!$obj) {
             return false;
         }
 
@@ -75,7 +92,7 @@ abstract class BaseObject implements Arrayable
 
     public function diffAttributes(?Arrayable $obj): array
     {
-        if (! $obj) {
+        if (!$obj) {
             return $this->toArray();
         }
 
@@ -90,16 +107,16 @@ abstract class BaseObject implements Arrayable
         $difference = [];
         foreach ($array1 as $key => $value) {
             if (is_array($value)) {
-                if (! isset($array2[$key]) || ! is_array($array2[$key])) {
+                if (!isset($array2[$key]) || !is_array($array2[$key])) {
                     $difference[$key] = $value;
                 } else {
                     $new_diff = $this->arrayDiffRecursive($value, $array2[$key]);
-                    if (! empty($new_diff)) {
+                    if (!empty($new_diff)) {
                         $difference[$key] = $new_diff;
                     }
                 }
             } else {
-                if (! array_key_exists($key, $array2) || $array2[$key] !== $value) {
+                if (!array_key_exists($key, $array2) || $array2[$key] !== $value) {
                     if (is_float($value) && array_key_exists($key, $array2) && is_float($array2[$key])) {
                         if ($this->areFloatNumbersEqual($value, $array2[$key])) {
                             continue;
@@ -115,6 +132,54 @@ abstract class BaseObject implements Arrayable
 
     private function areFloatNumbersEqual(float $value1, float $value2): bool
     {
-        return (string) $value1 === (string) $value2;
+        return (string)$value1 === (string)$value2;
     }
+
+    private function getObjectionableProperties(): array
+    {
+        $result = [
+            'fromArray' => [],
+            'enums' => [],
+        ];
+        $reflection = new ReflectionClass($this);
+        foreach ($reflection->getProperties() as $property) {
+            $propertyType = $property->getType();
+            if (!$propertyType instanceof ReflectionNamedType) {
+                continue;
+            }
+            if ($propertyType->isBuiltin()) {
+                continue;
+            }
+            if ($this->isFromArrayable($propertyType->getName())) {
+                $result['fromArray'][$property->getName()] = $propertyType->getName();
+                continue;
+            }
+            if (enum_exists($propertyType->getName())) {
+                $result['enums'][$property->getName()] = $propertyType->getName();
+            }
+        }
+
+        return $result;
+    }
+
+    private function isFromArrayable(string $name): bool
+    {
+        $implementations = class_implements($name);
+        return (bool)($implementations[FromArrayable::class] ?? null);
+    }
+
+    private function isNeedToCreateObject(
+        array $objProperties,
+        array $data,
+        string $property,
+    ): bool {
+        if (empty($objProperties[$property])) {
+            return false;
+        }
+        if (!isset($data[$property])) {
+            return false;
+        }
+        return !is_object($data[$property]);
+    }
+
 }
