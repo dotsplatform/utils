@@ -208,4 +208,33 @@ class BaseObjectTest extends TestCase
         ]);
         $this->assertEquals($arrayData, $object->getData());
     }
+
+    public function testCopyExpectsCopied(): void
+    {
+        $object = TestBaseObject::fromArray([
+            'id' => $this->generateUuid(),
+            'name' => 'name',
+        ]);
+        $copiesObject = $object->copy();
+
+        $this->assertInstanceOf(TestBaseObject::class, $copiesObject);
+        $this->assertEquals($object->getId(), $copiesObject->getId());
+        $this->assertEquals($object->getName(), $copiesObject->getName());
+    }
+
+    public function testCopyExpectsCopiedWithExtraData(): void
+    {
+        $expectedName = 'new name';
+        $object = TestBaseObject::fromArray([
+            'id' => $this->generateUuid(),
+            'name' => 'name',
+        ]);
+        $copiesObject = $object->copy([
+            'name' => $expectedName,
+        ]);
+
+        $this->assertInstanceOf(TestBaseObject::class, $copiesObject);
+        $this->assertEquals($object->getId(), $copiesObject->getId());
+        $this->assertEquals($expectedName, $copiesObject->getName());
+    }
 }

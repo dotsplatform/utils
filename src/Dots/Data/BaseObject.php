@@ -102,6 +102,11 @@ abstract class BaseObject implements Arrayable, FromArrayable
         );
     }
 
+    public function copy(array $data = []): static
+    {
+        return static::fromArray(array_merge($this->toArray(), $data));
+    }
+
     private function arrayDiffRecursive(array $array1, array $array2): array
     {
         $difference = [];
