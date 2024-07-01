@@ -40,6 +40,38 @@ class Period extends Entity
         ]);
     }
 
+    public static function days(int $value): static
+    {
+        return static::fromArray([
+            'type' => self::DAY,
+            'value' => $value,
+        ]);
+    }
+
+    public static function minutes(int $value): static
+    {
+        return static::fromArray([
+            'type' => self::MINUTE,
+            'value' => $value,
+        ]);
+    }
+
+    public function weeks(int $value): static
+    {
+        return static::fromArray([
+            'type' => self::WEEK,
+            'value' => $value,
+        ]);
+    }
+
+    public function months(int $value): static
+    {
+        return static::fromArray([
+            'type' => self::MONTH,
+            'value' => $value,
+        ]);
+    }
+
     public function getValue(): int
     {
         return $this->value;
