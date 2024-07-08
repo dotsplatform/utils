@@ -10,8 +10,8 @@
         }
     },
     "require": {
-        "php": "^8.1",
-        "illuminate/support": "^9.35|^10."
+        "php": "^8.3",
+        "illuminate/support": "^9.35|^10.|^11."
     },
     "require-dev": {
         "phpstan/phpstan": "^1.2",
