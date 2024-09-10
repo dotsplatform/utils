@@ -128,16 +128,22 @@ class BaseObjectDiffAttributesTest extends TestCase
         $dataNew = [
             'data' => [
                 'price' => 12.5,
+                'b' => [
+                    'a' => []
+                ]
             ],
         ];
         $dataOld = [
             'data' => [
-
+                'b' => [
+                    'a' => [4]
+                ],
             ],
         ];
         $old = TestBaseObjectWithArray::fromArray($dataOld);
         $new = TestBaseObjectWithArray::fromArray($dataNew);
         $diff = $new->diffAttributes($old);
         $this->assertNotEmpty($diff['data']['price']);
+        $this->assertEmpty($diff['data']['b']['a']);
     }
 }
