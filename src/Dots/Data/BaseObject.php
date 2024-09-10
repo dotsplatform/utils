@@ -110,25 +110,40 @@ abstract class BaseObject implements Arrayable, FromArrayable
     private function arrayDiffRecursive(array $array1, array $array2): array
     {
         $difference = [];
+
         foreach ($array1 as $key => $value) {
             if (is_array($value)) {
                 if (!isset($array2[$key]) || !is_array($array2[$key])) {
+                    // If the second array doesn't have the key or it's not an array
+                    $difference[$key] = $value;
+                } elseif (count($value) !== count($array2[$key])) {
+                    // If arrays have different lengths
                     $difference[$key] = $value;
                 } else {
+                    // Recursively compare arrays
                     $new_diff = $this->arrayDiffRecursive($value, $array2[$key]);
                     if (!empty($new_diff)) {
                         $difference[$key] = $new_diff;
                     }
                 }
             } else {
+                // Check if the value is different or if it doesn't exist in the second array
                 if (!array_key_exists($key, $array2) || $array2[$key] !== $value) {
                     if (is_float($value) && array_key_exists($key, $array2) && is_float($array2[$key])) {
+                        // Handle float comparison
                         if ($this->areFloatNumbersEqual($value, $array2[$key])) {
                             continue;
                         }
                     }
                     $difference[$key] = $value;
                 }
+            }
+        }
+
+        // Now also check if there are keys in array2 that are not in array1 (e.g., extra data)
+        foreach ($array2 as $key => $value) {
+            if (!array_key_exists($key, $array1)) {
+                $difference[$key] = null; // or $value, depending on how you want to handle missing keys
             }
         }
 
