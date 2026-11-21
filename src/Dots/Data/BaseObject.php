@@ -50,7 +50,17 @@ abstract class BaseObject implements Arrayable, FromArrayable
 
     public static function getPropertiesValues(): array
     {
-        return get_class_vars(static::class);
+        $className = static::class;
+        if (BaseObjectMetadataCache::hasPropertiesValues($className)) {
+            return BaseObjectMetadataCache::getPropertiesValues($className);
+        }
+
+        // get_class_vars() returns the declared default values (also for static
+        // properties), so the result depends only on the class and is safe to keep.
+        $propertiesValues = get_class_vars($className);
+        BaseObjectMetadataCache::putPropertiesValues($className, $propertiesValues);
+
+        return $propertiesValues;
     }
 
     public static function empty(): static
@@ -155,13 +165,41 @@ abstract class BaseObject implements Arrayable, FromArrayable
         return (string)$value1 === (string)$value2;
     }
 
+    /**
+     * @return array{fromArray: array<string, string>, enums: array<string, string>}
+     */
     private function getObjectionableProperties(): array
+    {
+        return self::getClassMetadata(static::class);
+    }
+
+    /**
+     * @param class-string<static> $className
+     * @return array{fromArray: array<string, string>, enums: array<string, string>}
+     */
+    private static function getClassMetadata(string $className): array
+    {
+        if (BaseObjectMetadataCache::hasClassMetadata($className)) {
+            return BaseObjectMetadataCache::getClassMetadata($className);
+        }
+
+        $classMetadata = self::buildClassMetadata($className);
+        BaseObjectMetadataCache::putClassMetadata($className, $classMetadata);
+
+        return $classMetadata;
+    }
+
+    /**
+     * @param class-string<static> $className
+     * @return array{fromArray: array<string, string>, enums: array<string, string>}
+     */
+    private static function buildClassMetadata(string $className): array
     {
         $result = [
             'fromArray' => [],
             'enums' => [],
         ];
-        $reflection = new ReflectionClass($this);
+        $reflection = new ReflectionClass($className);
         foreach ($reflection->getProperties() as $property) {
             $propertyType = $property->getType();
             if (!$propertyType instanceof ReflectionNamedType) {
@@ -170,7 +208,7 @@ abstract class BaseObject implements Arrayable, FromArrayable
             if ($propertyType->isBuiltin()) {
                 continue;
             }
-            if ($this->isFromArrayable($propertyType->getName())) {
+            if (self::isFromArrayable($propertyType->getName())) {
                 $result['fromArray'][$property->getName()] = $propertyType->getName();
                 continue;
             }
@@ -182,7 +220,7 @@ abstract class BaseObject implements Arrayable, FromArrayable
         return $result;
     }
 
-    private function isFromArrayable(string $name): bool
+    private static function isFromArrayable(string $name): bool
     {
         $implementations = class_implements($name);
         return (bool)($implementations[FromArrayable::class] ?? null);
