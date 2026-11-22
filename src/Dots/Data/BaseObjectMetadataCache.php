@@ -25,6 +25,11 @@ final class BaseObjectMetadataCache
     private static array $propertiesValuesByClass = [];
 
     /**
+     * @var array<string, list<string>>
+     */
+    private static array $propertyNamesByClass = [];
+
+    /**
      * @var array<string, array{fromArray: array<string, string>, enums: array<string, string>}>
      */
     private static array $classMetadataByClass = [];
@@ -48,6 +53,40 @@ final class BaseObjectMetadataCache
     public static function putPropertiesValues(string $className, array $propertiesValues): void
     {
         self::$propertiesValuesByClass[$className] = $propertiesValues;
+    }
+
+    /**
+     * One lookup instead of has + get: this runs for every created DTO.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function findPropertiesValues(string $className): ?array
+    {
+        return self::$propertiesValuesByClass[$className] ?? null;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public static function findPropertyNames(string $className): ?array
+    {
+        return self::$propertyNamesByClass[$className] ?? null;
+    }
+
+    /**
+     * @param list<string> $propertyNames
+     */
+    public static function putPropertyNames(string $className, array $propertyNames): void
+    {
+        self::$propertyNamesByClass[$className] = $propertyNames;
+    }
+
+    /**
+     * @return array{fromArray: array<string, string>, enums: array<string, string>}|null
+     */
+    public static function findClassMetadata(string $className): ?array
+    {
+        return self::$classMetadataByClass[$className] ?? null;
     }
 
     public static function hasClassMetadata(string $className): bool
@@ -74,6 +113,7 @@ final class BaseObjectMetadataCache
     public static function flush(): void
     {
         self::$propertiesValuesByClass = [];
+        self::$propertyNamesByClass = [];
         self::$classMetadataByClass = [];
     }
 }
