@@ -19,21 +19,26 @@ abstract class BaseObject implements Arrayable, FromArrayable
         array $data,
     ) {
         $this->assertConstructDataIsValid($data);
-        $properties = $this->getPropertiesValues();
-        $objProperties = $this->getObjectionableProperties();
-        $fromArrayableProperties = $objProperties['fromArray'];
-        $enumProperties = $objProperties['enums'];
+        $propertiesValues = static::getPropertiesValues();
+        $classMetadata = self::getClassMetadata(static::class);
+        $fromArrayableProperties = $classMetadata['fromArray'];
+        $enumProperties = $classMetadata['enums'];
 
-        foreach ($properties as $property => $defaultValue) {
-            if ($this->isNeedToCreateObject($fromArrayableProperties, $data, $property)) {
-                $this->$property = $fromArrayableProperties[$property]::fromArray($data[$property]);
+        foreach ($propertiesValues as $property => $defaultValue) {
+            // A missing key and a null value both take the declared default.
+            if (!isset($data[$property])) {
+                $this->$property = $defaultValue;
                 continue;
             }
-            if ($this->isNeedToCreateObject($enumProperties, $data, $property)) {
-                $this->$property = $enumProperties[$property]::from($data[$property]);
+            if (isset($fromArrayableProperties[$property])) {
+                $this->$property = self::buildFromArrayableValue($fromArrayableProperties[$property], $data[$property]);
                 continue;
             }
-            $this->$property = $data[$property] ?? $defaultValue;
+            if (isset($enumProperties[$property])) {
+                $this->$property = self::buildEnumValue($enumProperties[$property], $data[$property]);
+                continue;
+            }
+            $this->$property = $data[$property];
         }
     }
 
@@ -43,16 +48,26 @@ abstract class BaseObject implements Arrayable, FromArrayable
 
     public static function getProperties(): array
     {
-        return array_keys(
+        $className = static::class;
+        $cachedPropertyNames = BaseObjectMetadataCache::findPropertyNames($className);
+        if ($cachedPropertyNames !== null) {
+            return $cachedPropertyNames;
+        }
+
+        $propertyNames = array_keys(
             static::getPropertiesValues(),
         );
+        BaseObjectMetadataCache::putPropertyNames($className, $propertyNames);
+
+        return $propertyNames;
     }
 
     public static function getPropertiesValues(): array
     {
         $className = static::class;
-        if (BaseObjectMetadataCache::hasPropertiesValues($className)) {
-            return BaseObjectMetadataCache::getPropertiesValues($className);
+        $cachedPropertiesValues = BaseObjectMetadataCache::findPropertiesValues($className);
+        if ($cachedPropertiesValues !== null) {
+            return $cachedPropertiesValues;
         }
 
         // get_class_vars() returns the declared default values (also for static
@@ -76,16 +91,20 @@ abstract class BaseObject implements Arrayable, FromArrayable
     public function toArray(): array
     {
         $data = [];
-        $properties = $this->getProperties();
+        $properties = static::getProperties();
 
         foreach ($properties as $property) {
-            if ($this->$property instanceof Arrayable) {
-                $data[$property] = $this->$property->toArray();
-            } else if ($this->$property instanceof BackedEnum) {
-                $data[$property] = $this->$property->value;
-            } else {
-                $data[$property] = $this->$property;
+            // Read the property once: every dynamic property read has a cost.
+            $value = $this->$property;
+            if ($value instanceof Arrayable) {
+                $data[$property] = $value->toArray();
+                continue;
             }
+            if ($value instanceof BackedEnum) {
+                $data[$property] = $value->value;
+                continue;
+            }
+            $data[$property] = $value;
         }
 
         return $data;
@@ -166,21 +185,14 @@ abstract class BaseObject implements Arrayable, FromArrayable
     }
 
     /**
-     * @return array{fromArray: array<string, string>, enums: array<string, string>}
-     */
-    private function getObjectionableProperties(): array
-    {
-        return self::getClassMetadata(static::class);
-    }
-
-    /**
      * @param class-string<static> $className
      * @return array{fromArray: array<string, string>, enums: array<string, string>}
      */
     private static function getClassMetadata(string $className): array
     {
-        if (BaseObjectMetadataCache::hasClassMetadata($className)) {
-            return BaseObjectMetadataCache::getClassMetadata($className);
+        $cachedClassMetadata = BaseObjectMetadataCache::findClassMetadata($className);
+        if ($cachedClassMetadata !== null) {
+            return $cachedClassMetadata;
         }
 
         $classMetadata = self::buildClassMetadata($className);
@@ -226,18 +238,29 @@ abstract class BaseObject implements Arrayable, FromArrayable
         return (bool)($implementations[FromArrayable::class] ?? null);
     }
 
-    private function isNeedToCreateObject(
-        array $objProperties,
-        array $data,
-        string $property,
-    ): bool {
-        if (empty($objProperties[$property])) {
-            return false;
+    /**
+     * An already built object (for example a DTO passed by a translator) is kept as it is.
+     */
+    private static function buildFromArrayableValue(string $className, mixed $value): mixed
+    {
+        if (is_object($value)) {
+            return $value;
         }
-        if (!isset($data[$property])) {
-            return false;
-        }
-        return !is_object($data[$property]);
+
+        /** @var array<mixed> $value */
+        return $className::fromArray($value);
     }
 
+    /**
+     * An enum case that is already built is kept as it is.
+     */
+    private static function buildEnumValue(string $className, mixed $value): mixed
+    {
+        if (is_object($value)) {
+            return $value;
+        }
+
+        /** @var int|string $value */
+        return $className::from($value);
+    }
 }
