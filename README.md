@@ -9,6 +9,67 @@ composer require dotsplatform/utils
 
 The package has no auto-discovered service providers. Everything that changes a service's behaviour is opt-in.
 
+## Coordinate ranges and longitude wrapping (v2.7.0)
+
+One implementation of the coordinate range checks for clients-api, livesite and locations. MySQL spatial functions
+(`ST_GeomFromText`) reject a latitude outside [-90, 90] or a longitude outside [-180, 180], and map widgets sometimes
+send the centre of a map panned past the antimeridian without wrapping it (for example `390.4952` for Kyiv at
+`30.4952`).
+
+### `Dots\Distance\Position`
+
+```php
+public const float MIN_LATITUDE = -90.0;
+public const float MAX_LATITUDE = 90.0;
+public const float MIN_LONGITUDE = -180.0;
+public const float MAX_LONGITUDE = 180.0;
+
+public static function normalizeLongitude(float $longitude): float;
+public static function isLatitudeInRange(float $latitude): bool;
+public static function isLongitudeInRange(float $longitude): bool;
+public function isInRange(): bool;
+```
+
+- `normalizeLongitude()` returns a longitude in [-180, 180] unchanged (both edges included). A finite longitude
+  outside it is wrapped into **[-180, 180)**: `390.4952` becomes `30.4952`, `-1411.608294` becomes `28.391706`, `540`
+  becomes `-180` (never `180`). `INF` / `NAN` are returned unchanged, so the range check rejects them.
+- `isLatitudeInRange()` / `isLongitudeInRange()`: finite and inside the range, edges included.
+- `isInRange()`: both values are not null, finite and inside the ranges.
+
+Not changed: `isValid()` still only checks that both values are not null, and `fromArray()` / `fromLonLat()` /
+`fromString()` never wrap or reject anything, so stored data is never changed silently. Wrap explicitly where a
+request comes in.
+
+### Validation rules
+
+`Dots\Distance\Rules\LatitudeRule` and `Dots\Distance\Rules\LongitudeRule` implement
+`Illuminate\Contracts\Validation\ValidationRule`: numeric (number or numeric string), finite, inside the range, edges
+included. They only check the value. Combine them with `required` / `nullable` as usual:
+
+```php
+public function rules(): array
+{
+    return [
+        'latitude' => ['required', new LatitudeRule()],
+        'longitude' => ['required', new LongitudeRule()],
+    ];
+}
+```
+
+To accept an unwrapped map longitude, wrap it before validation:
+
+```php
+protected function prepareForValidation(): void
+{
+    $longitude = $this->input('longitude');
+    if (! is_numeric($longitude)) {
+        return;
+    }
+
+    $this->merge(['longitude' => Position::normalizeLongitude((float) $longitude)]);
+}
+```
+
 ## Octane DB session timeout, set once per connection
 
 `Dots\Utils\Database\OctaneDatabaseSessionServiceProvider` gives every MySQL connection of a **Vapor Octane web
